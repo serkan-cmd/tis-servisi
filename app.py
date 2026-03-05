@@ -109,7 +109,7 @@ with tab1:
         giyim = st.number_input("Giyim Yardımı (Yıllık)", 0.0)
         ayakkabi = st.number_input("Ayakkabı (Yıllık)", 0.0)
         yilbasi = st.number_input("Yılbaşı Parası (Yıllık)", 0.0)
-        ikramiye = st.number_input("İkramiye (Yıllık Toplam Gün)", 120)
+        ikramiye = st.number_input("İkramiye (Yıllık Toplam Gün)", 0)
 
     with y2:
         with st.container(border=True):
