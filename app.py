@@ -1,10 +1,9 @@
-import gspread
-from oauth2client.service_account import ServiceAccountCredentials
 import streamlit as st
 import pandas as pd
 import io
+import gspread
+from oauth2client.service_account import ServiceAccountCredentials
 from datetime import datetime
-from streamlit_gsheets import GSheetsConnection
 
 # Sayfa ayarları
 st.set_page_config(page_title="Petrol-İş TİS Servisi v1.2", layout="wide")
@@ -87,7 +86,6 @@ toplam_aylik_maliyet = aylik_ana_brut + aylik_ek_ucret + toplam_sosyal_yardim
 # --- SONUÇLAR VE UYARILAR ---
 st.divider()
 
-# Asgari Ücret Kontrolü
 if aylik_ana_brut < asgari_ucret_limit:
     st.error(f"⚠️ UYARI: Hesaplanan Ana Brüt ({aylik_ana_brut:,.2f} TL), yasal asgari ücretin altında!")
 
@@ -96,14 +94,12 @@ m1.metric("Toplam Aylık Brüt Maliyet", f"{toplam_aylik_maliyet:,.2f} TL")
 m2.metric("Sadece Sosyal Paket (Aylık)", f"{toplam_sosyal_yardim:,.2f} TL")
 m3.metric("Ücrete Bağlı Ek (Aylık)", f"{aylik_ek_ucret:,.2f} TL")
 
-# Detaylı Tablo Gösterimi
-st.markdown("#### 📝 Maliyet Detayları")
+# Detaylı Tablo
 detay_data = {
-    "Kalem": ["Ana Maaş (Brüt)", "Ücrete Bağlı Ek Ödeme", "Gıda (Aylık Ort.)", "Yakacak", "İkramiye (Aylık Pay)"],
+    "Kalem": ["Ana Maaş (Brüt)", "Ücrete Bağlı Ek Ödeme", "Gıda", "Yakacak", "İkramiye (Pay)"],
     "Tutar (TL)": [aylik_ana_brut, aylik_ek_ucret, gıda, yakacak, aylik_ikramiye_maliyeti]
 }
-df_detay = pd.DataFrame(detay_data)
-st.table(df_detay)
+st.table(pd.DataFrame(detay_data))
 
 # --- KAYIT VE EXCEL İŞLEMLERİ ---
 col_btn1, col_btn2 = st.columns(2)
@@ -111,59 +107,49 @@ col_btn1, col_btn2 = st.columns(2)
 with col_btn1:
     if st.button("💾 Veritabanına (Google Sheets) Kaydet"):
         try:
-            # 1. Yetkilendirme Kapsamı
             scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
             
-            # 2. Secrets'tan JSON bilgilerini al (Formatın TOML olduğu varsayıldı)
+            # Secrets'tan TOML formatındaki verileri dict olarak alıyoruz
+            s = st.secrets["connections"]["gsheets"]
             creds_dict = {
-                "type": st.secrets["connections"]["gsheets"]["type"],
-                "project_id": st.secrets["connections"]["gsheets"]["project_id"],
-                "private_key_id": st.secrets["connections"]["gsheets"]["private_key_id"],
-                "private_key": st.secrets["connections"]["gsheets"]["private_key"],
-                "client_email": st.secrets["connections"]["gsheets"]["client_email"],
-                "client_id": st.secrets["connections"]["gsheets"]["client_id"],
-                "auth_uri": st.secrets["connections"]["gsheets"]["auth_uri"],
-                "token_uri": st.secrets["connections"]["gsheets"]["token_uri"],
-                "auth_provider_x509_cert_url": st.secrets["connections"]["gsheets"]["auth_provider_x509_cert_url"],
-                "client_x509_cert_url": st.secrets["connections"]["gsheets"]["client_x509_cert_url"]
+                "type": s["type"],
+                "project_id": s["project_id"],
+                "private_key_id": s["private_key_id"],
+                "private_key": s["private_key"],
+                "client_email": s["client_email"],
+                "client_id": s["client_id"],
+                "auth_uri": s["auth_uri"],
+                "token_uri": s["token_uri"],
+                "auth_provider_x509_cert_url": s["auth_provider_x509_cert_url"],
+                "client_x509_cert_url": s["client_x509_cert_url"]
             }
             
             creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, scope)
             client = gspread.authorize(creds)
             
-            # 3. Tabloyu Aç (ID senin tablonun ID'sidir)
+            # Tablo ID'si
             sheet = client.open_by_key("1kb6ceU5NjBNl1PB3vCspw90s8lYRVU7XVbMt97tfEbg").sheet1
             
-            # 4. Veriyi Hazırla
             yeni_satir = [
                 datetime.now().strftime("%d/%m/%Y %H:%M"),
                 "Petrol-İş Temsilcisi",
                 isyeri,
-                f"{aylik_ana_brut:,.2f}",
-                f"{aylik_ek_ucret:,.2f}",
-                f"{toplam_sosyal_yardim:,.2f}",
-                f"{toplam_aylik_maliyet:,.2f}"
+                f"{aylik_ana_brut:.2f}",
+                f"{aylik_ek_ucret:.2f}",
+                f"{toplam_sosyal_yardim:.2f}",
+                f"{toplam_aylik_maliyet:.2f}"
             ]
             
-            # 5. Ekle
             sheet.append_row(yeni_satir)
-            
-            st.success(f"✅ {isyeri} verileri başarıyla kaydedildi!")
+            st.success(f"✅ {isyeri} başarıyla kaydedildi!")
             st.balloons()
             
         except Exception as e:
             st.error(f"Kayıt Hatası: {e}")
 
 with col_btn2:
-    # Excel Çıktısı
     df_excel = pd.DataFrame(detay_data)
     output = io.BytesIO()
     with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
-        df_excel.to_excel(writer, index=False, sheet_name='TIS_Maliyet_Ozeti')
-    
-    st.download_button(
-        label="📥 Excel Dosyasını İndir",
-        data=output.getvalue(),
-        file_name=f"tis_maliyet_{isyeri}.xlsx",
-        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-    )
+        df_excel.to_excel(writer, index=False)
+    st.download_button("📥 Excel İndir", output.getvalue(), f"{isyeri}.xlsx")
