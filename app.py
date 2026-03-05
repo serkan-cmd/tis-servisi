@@ -166,9 +166,49 @@ with tab1:
     }
     st.table(pd.DataFrame(detay))
 
-    # --- KAYIT ---
-    if st.button("💾 Tüm Verileri Kaydet"):
-        try:
-            # Buraya Google Sheets kayıt kodları gelecek (mevcut yapın kullanılabilir)
-            st.success(f"{isyeri_adi} verileri başarıyla sisteme işlendi!")
-        except Exception as e: st.error(e)
+   # --- KAYIT VE EXCEL ---
+    col_btn1, col_btn2 = st.columns(2)
+
+    with col_btn1:
+        if st.button("💾 Veritabanına (Google Sheets) Kaydet"):
+            try:
+                scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
+                s = st.secrets["connections"]["gsheets"]
+                creds_dict = {
+                    "type": s["type"], "project_id": s["project_id"], "private_key_id": s["private_key_id"],
+                    "private_key": s["private_key"], "client_email": s["client_email"], "client_id": s["client_id"],
+                    "auth_uri": s["auth_uri"], "token_uri": s["token_uri"],
+                    "auth_provider_x509_cert_url": s["auth_provider_x509_cert_url"],
+                    "client_x509_cert_url": s["client_x509_cert_url"]
+                }
+                
+                creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, scope)
+                client = gspread.authorize(creds)
+                sheet = client.open_by_key("1kb6ceU5NjBNl1PB3vCspw90s8lYRVU7XVbMt97tfEbg").sheet1
+                
+                # Google Sheets'e gidecek veri listesi (Sütunları istediğin gibi artırabilirsin)
+                yeni_satir = [
+                    datetime.now().strftime("%d/%m/%Y %H:%M"),
+                    st.session_state["active_user"],
+                    isyeri_adi,
+                    ", ".join(subeler), # Listeyi metne çevirir (Adana, Gebze gibi)
+                    uye_sayisi,
+                    grev_yasagi,
+                    f"{a_brut:.2f}",
+                    f"{toplam_sosyal:.2f}",
+                    f"{t_maliyet:.2f}"
+                ]
+                
+                sheet.append_row(yeni_satir)
+                st.success(f"✅ {isyeri_adi} verileri başarıyla kaydedildi!")
+                st.balloons()
+            except Exception as e:
+                st.error(f"Kayıt Hatası: {e}")
+
+    with col_btn2:
+        # Excel çıktısı için detay tablosunu kullanıyoruz
+        df_excel = pd.DataFrame(detay)
+        output = io.BytesIO()
+        with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
+            df_excel.to_excel(writer, index=False)
+        st.download_button("📥 Excel İndir", output.getvalue(), f"{isyeri_adi}.xlsx")
