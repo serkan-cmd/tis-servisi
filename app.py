@@ -111,37 +111,48 @@ col_btn1, col_btn2 = st.columns(2)
 with col_btn1:
     if st.button("💾 Veritabanına (Google Sheets) Kaydet"):
         try:
-            # 1. Bağlantıyı Kur
-            conn = st.connection("gsheets", type=GSheetsConnection)
+            # 1. Yetkilendirme Kapsamı
+            scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
             
-            # 2. Mevcut verileri oku (Boşsa hata almamak için)
-            try:
-                existing_data = conn.read(worksheet="Sayfa1")
-            except:
-                existing_data = pd.DataFrame()
-
-            # 3. Yeni kayıt satırını hazırla (Senin başlıklarınla tam uyumlu)
-            yeni_satir = pd.DataFrame([{
-                "Tarih": datetime.now().strftime("%d/%m/%Y %H:%M"),
-                "Kullanıcı": "Petrol-İş Temsilcisi", # İstersen buraya giriş yapanın adını ekleyebiliriz
-                "İşyeri": isyeri,
-                "Brüt Ücret": round(aylik_ana_brut, 2),
-                "Ek Ödeme": round(aylik_ek_ucret, 2),
-                "Sosyal Ödeme": round(toplam_sosyal_yardim, 2),
-                "Toplam Ücret": round(toplam_aylik_maliyet, 2)
-            }])
-
-            # 4. Mevcut veriyle yeniyi birleştir
-            updated_df = pd.concat([existing_data, yeni_satir], ignore_index=True)
-
-            # 5. Google Sheets'e Yaz
-            conn.update(worksheet="Sayfa1", data=updated_df)
+            # 2. Secrets'tan JSON bilgilerini al (Formatın TOML olduğu varsayıldı)
+            creds_dict = {
+                "type": st.secrets["connections"]["gsheets"]["type"],
+                "project_id": st.secrets["connections"]["gsheets"]["project_id"],
+                "private_key_id": st.secrets["connections"]["gsheets"]["private_key_id"],
+                "private_key": st.secrets["connections"]["gsheets"]["private_key"],
+                "client_email": st.secrets["connections"]["gsheets"]["client_email"],
+                "client_id": st.secrets["connections"]["gsheets"]["client_id"],
+                "auth_uri": st.secrets["connections"]["gsheets"]["auth_uri"],
+                "token_uri": st.secrets["connections"]["gsheets"]["token_uri"],
+                "auth_provider_x509_cert_url": st.secrets["connections"]["gsheets"]["auth_provider_x509_cert_url"],
+                "client_x509_cert_url": st.secrets["connections"]["gsheets"]["client_x509_cert_url"]
+            }
             
-            st.success(f"✅ {isyeri} verileri Google Sheets veritabanına işlendi!")
-            st.balloons() # Başarı kutlaması :)
+            creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, scope)
+            client = gspread.authorize(creds)
+            
+            # 3. Tabloyu Aç (ID senin tablonun ID'sidir)
+            sheet = client.open_by_key("1kb6ceU5NjBNl1PB3vCspw90s8lYRVU7XVbMt97tfEbg").sheet1
+            
+            # 4. Veriyi Hazırla
+            yeni_satir = [
+                datetime.now().strftime("%d/%m/%Y %H:%M"),
+                "Petrol-İş Temsilcisi",
+                isyeri,
+                f"{aylik_ana_brut:,.2f}",
+                f"{aylik_ek_ucret:,.2f}",
+                f"{toplam_sosyal_yardim:,.2f}",
+                f"{toplam_aylik_maliyet:,.2f}"
+            ]
+            
+            # 5. Ekle
+            sheet.append_row(yeni_satir)
+            
+            st.success(f"✅ {isyeri} verileri başarıyla kaydedildi!")
+            st.balloons()
             
         except Exception as e:
-            st.error(f"Kayıt Hatası: {e}. Lütfen Secrets panelindeki linki ve Google Sheets paylaşım izinlerini kontrol edin.")
+            st.error(f"Kayıt Hatası: {e}")
 
 with col_btn2:
     # Excel Çıktısı
