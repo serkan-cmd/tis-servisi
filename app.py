@@ -130,11 +130,17 @@ with tab1:
         
         with st.container(border=True):
             st.write("👨‍👩‍👧‍👦 **Aile & Çocuk Yardımı**")
+            
+            # Aile Yardımı Bölümü
             yasal_aile = st.checkbox("Yasal Aile Yardımı Uygula")
-            maktu_aile = st.number_input("Maktu Ek Aile Yardımı", 0.0)
-            c06 = st.number_input("0-6 Yaş Çocuk Sayısı", 0, step=1)
-            c6ustu = st.number_input("6+ Yaş Çocuk Sayısı", 0, step=1)
-
+            maktu_aile = st.number_input("Maktu Ek Aile Yardımı", 0.0, help="Sendika tarafından kazanılan sabit tutar")
+            
+            st.divider()
+            
+            # Çocuk Yardımı Bölümü
+            cocuk_sayisi = st.number_input("Çocuk Sayısı", 0, step=1)
+            yasal_cocuk_tik = st.checkbox("Yasal Çocuk Zammı Uygula", help="Yasal 6+ yaş tutarının 2 katı (Her çocuk için)")
+            maktu_cocuk_birim = st.number_input("Maktu Çocuk Yardımı (Birim)", 0.0, help="Çocuk başına maktu ödeme tutarı")
     st.divider()
     st.markdown("### ⚡ Özel Ödemeler (Vardiya, Gece ve Ek)")
     v1, v2, v3 = st.columns(3)
