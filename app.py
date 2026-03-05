@@ -2,9 +2,9 @@ import streamlit as st
 import pandas as pd
 
 # Sayfa ayarları
-st.set_page_config(page_title="TİS Servisi v1.0", layout="wide")
+st.set_page_config(page_title="Petrol-İş TİS Servisi v1.0", layout="wide")
 
-st.title("📊 TİS Maliyet Hesaplama Platformu")
+st.title("📊 Petrol-İş TİS Servisi")
 st.markdown("---")
 
 # Yan Menü: Sabit Parametreler
