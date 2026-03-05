@@ -12,7 +12,7 @@ st.set_page_config(page_title="Petrol-İş TİS Servisi v1.2", layout="wide")
 st.markdown("""
     <style>
     .stApp {
-        background-color: #e3f2fd; /* Açık Mavi */
+        background-color: #94c7ec; /* Açık Mavi */
     }
     .stMetric {
         background-color: #ffffff;
@@ -96,17 +96,17 @@ st.markdown("### 🎁 Sosyal Yardımlar")
 yardim_col1, yardim_col2, yardim_col3 = st.columns(3)
 
 with yardim_col1:
-    gıda = st.number_input("Aylık Gıda Yardımı (Brüt)", value=170.0)
+    gıda = st.number_input("Aylık Gıda Yardımı (Brüt)", value=1000.0)
     yakacak = st.number_input("Aylık Yakacak Yardımı (Brüt)", value=1000.0)
     aile_yardimi_var = st.checkbox("Aile Yardımı Uygula")
     
 with yardim_col2:
     yemek_gunluk = st.number_input("Günlük Yemek (Brüt)", value=0.0)
-    bayram_yardimi = st.number_input("Yıllık Dini Bayram Yardımı Toplam (Brüt)", value=0.0)
+    bayram_yardimi = st.number_input("Yıllık Bayram Yardımı Toplam (Brüt)", value=0.0)
     cocuk_0_6_sayisi = st.number_input("0-6 Yaş Çocuk Sayısı", value=0, step=1)
 
 with yardim_col3:
-    ikramiye_gun = st.number_input("Yıllık İkramiye (Gün Sayısı)", value=60)
+    ikramiye_gun = st.number_input("Yıllık İkramiye (Gün Sayısı)", value=120)
     diger_sosyal = st.number_input("Diğer Sosyal Yardımlar Toplamı (Aylık/Brüt)", value=0.0)
     cocuk_6_ustu_sayisi = st.number_input("6+ Yaş Çocuk Sayısı", value=0, step=1)
 
