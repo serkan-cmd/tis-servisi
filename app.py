@@ -111,28 +111,44 @@ with yardim_col3:
     cocuk_6_ustu_sayisi = st.number_input("6+ Yaş Çocuk Sayısı", value=0, step=1)
 
 # --- HESAPLAMA MANTIĞI ---
-# DÜZELTME: 'net_brut_oran' yerine 'secilen_oran' kullanıldı
-aylik_ana_brut = ucret / secilen_oran if ucret_tipi == "Net" else ucret
+
+# Vergi dilimine göre Sabitler (Verdiğin güncel değerler)
+sabitler = {
+    0.71491: 4462.03, # %15 Dilimi için
+    0.67241: 4788.45, # %20 Dilimi için
+    0.61291: 5865.80, # %27 Dilimi için
+    0.54491: 5865.80  # %35 Dilimi için
+}
+
+# Seçilen orana karşılık gelen sabiti alıyoruz
+current_sabit = sabitler[secilen_oran]
+
+# Netten Brüt Hesaplama Formülü: (Net - Sabit) / Oran
+if ucret_tipi == "Net":
+    aylik_ana_brut = (ucret - current_sabit) / secilen_oran
+else:
+    aylik_ana_brut = ucret
+
 gunluk_brut = aylik_ana_brut / 30
 
-# Ücrete bağlı ek ödeme hesabı
+# Ücrete bağlı ek ödeme hesabı (İkramiye ve ek ödeme tabanı)
 if ek_odeme_modu == "Yüzde (%)":
     ek_brut = gunluk_brut * (ek_odeme_degeri / 100)
 elif ek_odeme_modu == "Katsayı (Gün)":
     ek_brut = gunluk_brut * ek_odeme_degeri
 else:
     ek_brut = ek_odeme_degeri
+    
 aylik_ek_ucret = ek_brut if periyot == "Aylık" else ek_brut / 12
 
-# Sosyal Yardım Hesaplamaları
+# Sosyal Yardım Hesaplamaları (Brüt üzerinden)
 aylik_yemek = yemek_gunluk * 22.5
 aylik_bayram = bayram_yardimi / 12
 aylik_ikramiye_maliyeti = (gunluk_brut * ikramiye_gun) / 12
-# YENİ: Aile ve Çocuk Yardımı Hesaplaması
 aylik_aile_yardimi = aile_yardimi_yasal if aile_yardimi_var else 0
 aylik_cocuk_yardimi = (cocuk_0_6_sayisi * cocuk_0_6_yasal) + (cocuk_6_ustu_sayisi * cocuk_6_ustu_yasal)
 
-# Toplam Sosyal Paket (DÜZELTME: Aile ve Çocuk yardımı eklendi)
+# Toplam Maliyet Hesaplama
 toplam_sosyal_yardim = gıda + yakacak + aylik_ikramiye_maliyeti + aylik_yemek + aylik_bayram + diger_sosyal + aylik_aile_yardimi + aylik_cocuk_yardimi
 toplam_aylik_maliyet = aylik_ana_brut + aylik_ek_ucret + toplam_sosyal_yardim
 
