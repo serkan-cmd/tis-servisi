@@ -38,8 +38,8 @@ with st.sidebar:
     st.header("⚙️ Genel Ayarlar")
     
     # --- YENİ: KULLANICI SEÇİMİ ---
-    temsilci_listesi = ["Seçiniz...", "Ahmet Yılmaz", "Mehmet Demir", "Ayşe Kaya", "Mustafa Yıldız"] # Burayı güncelleyebilirsin
-    kullanici_adi = st.selectbox("👤 İşlemi Yapan Temsilci", temsilci_listesi)
+    temsilci_listesi = ["Seçiniz...", "Özgün Çelik Aygün", "Tuğçe Kalyoncu", "Melis Akkuzu", "Serkan Gümüşbaş"] # Burayı güncelleyebilirsin
+    kullanici_adi = st.selectbox("👤 İşlemi Yapan Uzman", temsilci_listesi)
     
     st.divider()
     net_brut_oran = st.number_input("Net-Brüt Oranı", value=0.67241, format="%.5f")
