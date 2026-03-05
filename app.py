@@ -43,6 +43,17 @@ else:
 # Eğer yıllık ise aya böl
 hesaplanan_ek = ek_brut if periyot == "Aylık" else ek_brut / 12
 
+# Sosyal Yardımlar Bölümü
+st.subheader("🎁 Sosyal Yardımlar")
+yardim_col1, yardim_col2 = st.columns(2)
+
+with yardim_col1:
+    yemek = st.number_input("Günlük Yemek Yardımı (Brüt)", value=170.0)
+    yakacak = st.number_input("Aylık Yakacak Yardımı (Brüt)", value=1000.0)
+
+with yardim_col2:
+    ikramiye_gun = st.number_input("Yıllık İkramiye (Gün Sayısı)", value=60)
+
 # 3. Sonuçları Göster
 st.divider()
 toplam_maliyet = aylik_brut + hesaplanan_ek
