@@ -31,7 +31,7 @@ st.markdown("""
     </style>
     """, unsafe_allow_html=True)
 
-# --- GÜVENLİK PANELİ (GÜNCELLENDİ) ---
+# --- GÜVENLİK PANELİ ---
 def check_password():
     if "password_correct" not in st.session_state:
         st.session_state["password_correct"] = False
@@ -44,18 +44,22 @@ def check_password():
     col1, col2, col3 = st.columns([1,2,1]) 
     
     with col2:
-        user_id = st.text_input("Kullanıcı ID")
-        password = st.text_input("Giriş Şifresi", type="password")
+        user_id = st.text_input("Kullanıcı ID (Örn: adiniz2026)")
+        password = st.text_input("Size Özel Şifre", type="password")
         
-        if st.button("Giriş Yap"):
-            if user_id in users and password == GIRIS_SIFRESI:
-                st.session_state["password_correct"] = True
-                st.session_state["active_user"] = users[user_id]
-                st.rerun()
-            elif user_id not in users:
-                st.error("❌ Geçersiz Kullanıcı ID!")
+        if st.button("Sisteme Giriş Yap"):
+            # Önce kullanıcı ID var mı diye bakıyoruz
+            if user_id in users:
+                # Varsa, o ID'ye ait şifre doğru mu diye bakıyoruz
+                if password == users[user_id]["sifre"]:
+                    st.session_state["password_correct"] = True
+                    st.session_state["active_user"] = users[user_id]["isim"]
+                    st.success(f"Hoş geldiniz, {users[user_id]['isim']}!")
+                    st.rerun()
+                else:
+                    st.error("❌ Hatalı şifre!")
             else:
-                st.error("❌ Hatalı şifre!")
+                st.error("❌ Geçersiz Kullanıcı ID!")
     return False
 
 if not check_password():
