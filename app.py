@@ -44,6 +44,10 @@ with st.sidebar:
     st.divider()
     net_brut_oran = st.number_input("Net-Brüt Oranı", value=0.67241, format="%.5f")
     asgari_ucret_limit = st.number_input("Güncel Asgari Ücret (Brüt)", value=33030.00)
+    aile_yardimi = st.number_input("Güncel Aile Yardımı", value=3154.63)
+    cocuk_yardimi_0_6 = st.number_input("Güncel Çocuk Yardımı 0-6 Yaş", value=693.94)
+    cocuk_yardimi_6+ = st.number_input("Güncel Çocuk Yardımı 6 Yaş Üstü", value=346.97)
+
 
 st.title("📊 Petrol-İş TİS Servisi")
 st.markdown("---")
