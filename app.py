@@ -7,6 +7,7 @@ from datetime import datetime
 
 # Sayfa ayarları
 st.set_page_config(page_title="Petrol-İş TİS Servisi v1.2", layout="wide")
+
 # --- MAVİ ARKA PLAN VE STİL AYARLARI ---
 st.markdown("""
     <style>
@@ -21,6 +22,7 @@ st.markdown("""
     }
     </style>
     """, unsafe_allow_html=True)
+
 # --- GÜVENLİK PANELİ ---
 def check_password():
     if "password_correct" not in st.session_state:
@@ -50,25 +52,27 @@ with st.sidebar:
         st.rerun()
     st.header("⚙️ Genel Ayarlar")
     
-    # --- YENİ: KULLANICI SEÇİMİ ---
-    temsilci_listesi = ["Seçiniz...", "Özgün Çelik Aygün", "Tuğçe Kalyoncu", "Melis Akkuzu", "Serkan Gümüşbaş"] # Burayı güncelleyebilirsin
+    temsilci_listesi = ["Seçiniz...", "Özgün Çelik Aygün", "Tuğçe Kalyoncu", "Melis Akkuzu", "Serkan Gümüşbaş"]
     kullanici_adi = st.selectbox("👤 İşlemi Yapan Uzman", temsilci_listesi)
     
     st.divider()
-    # Net-Brüt Oranı (Radyo Buton ile Seçenekler)
+    # Net-Brüt Oranı Seçenekleri
     oran_etiketleri = {
         0.71491: "%15 Vergi Dilimi (0.71491)",
         0.67241: "%20 Vergi Dilimi (0.67241)",
         0.61291: "%27 Vergi Dilimi (0.61291)",
         0.54491: "%35 Vergi Dilimi (0.54491)"
     }
+    # DÜZELTME: Buradaki değişken ismi 'secilen_oran'
     secilen_oran = st.radio("📉 Net-Brüt Oranı Seçimi", options=list(oran_etiketleri.keys()), 
                             format_func=lambda x: oran_etiketleri[x], index=1)
+    
     asgari_ucret_limit = st.number_input("Güncel Asgari Ücret (Brüt)", value=33030.00)
-    aile_yardimi = st.number_input("Güncel Aile Yardımı", value=3154.63)
-    cocuk_yardimi_0_6 = st.number_input("Güncel Çocuk Yardımı 0-6 Yaş", value=693.94)
-    cocuk_yardimi_6_ustu = st.number_input("Güncel Çocuk Yardımı 6 Yaş Üstü", value=346.97)
-
+    
+    st.subheader("⚖️ Yasal Yardımlar")
+    aile_yardimi_yasal = st.number_input("Güncel Aile Yardımı", value=3154.63)
+    cocuk_0_6_yasal = st.number_input("Güncel Çocuk Yardımı 0-6 Yaş", value=693.94)
+    cocuk_6_ustu_yasal = st.number_input("Güncel Çocuk Yardımı 6 Yaş Üstü", value=346.97)
 
 st.title("📊 Petrol-İş TİS Servisi")
 st.markdown("---")
@@ -94,17 +98,21 @@ yardim_col1, yardim_col2, yardim_col3 = st.columns(3)
 with yardim_col1:
     gıda = st.number_input("Aylık Gıda Yardımı (Brüt)", value=170.0)
     yakacak = st.number_input("Aylık Yakacak Yardımı (Brüt)", value=1000.0)
+    aile_yardimi_var = st.checkbox("Aile Yardımı Uygula")
     
 with yardim_col2:
     yemek_gunluk = st.number_input("Günlük Yemek (Brüt)", value=0.0)
     bayram_yardimi = st.number_input("Yıllık Dini Bayram Yardımı Toplam (Brüt)", value=0.0)
+    cocuk_0_6_sayisi = st.number_input("0-6 Yaş Çocuk Sayısı", value=0, step=1)
 
 with yardim_col3:
     ikramiye_gun = st.number_input("Yıllık İkramiye (Gün Sayısı)", value=60)
     diger_sosyal = st.number_input("Diğer Sosyal Yardımlar Toplamı (Aylık/Brüt)", value=0.0)
+    cocuk_6_ustu_sayisi = st.number_input("6+ Yaş Çocuk Sayısı", value=0, step=1)
 
 # --- HESAPLAMA MANTIĞI ---
-aylik_ana_brut = ucret / net_brut_oran if ucret_tipi == "Net" else ucret
+# DÜZELTME: 'net_brut_oran' yerine 'secilen_oran' kullanıldı
+aylik_ana_brut = ucret / secilen_oran if ucret_tipi == "Net" else ucret
 gunluk_brut = aylik_ana_brut / 30
 
 # Ücrete bağlı ek ödeme hesabı
@@ -116,13 +124,16 @@ else:
     ek_brut = ek_odeme_degeri
 aylik_ek_ucret = ek_brut if periyot == "Aylık" else ek_brut / 12
 
-# Yeni Sosyal Yardım Hesaplamaları
-aylik_yemek = yemek_gunluk * 22.5 # Ortalama çalışma günü
+# Sosyal Yardım Hesaplamaları
+aylik_yemek = yemek_gunluk * 22.5
 aylik_bayram = bayram_yardimi / 12
 aylik_ikramiye_maliyeti = (gunluk_brut * ikramiye_gun) / 12
+# YENİ: Aile ve Çocuk Yardımı Hesaplaması
+aylik_aile_yardimi = aile_yardimi_yasal if aile_yardimi_var else 0
+aylik_cocuk_yardimi = (cocuk_0_6_sayisi * cocuk_0_6_yasal) + (cocuk_6_ustu_sayisi * cocuk_6_ustu_yasal)
 
-# Toplam Sosyal Paket
-toplam_sosyal_yardim = gıda + yakacak + aylik_ikramiye_maliyeti + aylik_yemek + aylik_bayram + diger_sosyal
+# Toplam Sosyal Paket (DÜZELTME: Aile ve Çocuk yardımı eklendi)
+toplam_sosyal_yardim = gıda + yakacak + aylik_ikramiye_maliyeti + aylik_yemek + aylik_bayram + diger_sosyal + aylik_aile_yardimi + aylik_cocuk_yardimi
 toplam_aylik_maliyet = aylik_ana_brut + aylik_ek_ucret + toplam_sosyal_yardim
 
 # --- SONUÇLAR VE UYARILAR ---
@@ -136,10 +147,10 @@ m1.metric("Toplam Aylık Brüt Maliyet", f"{toplam_aylik_maliyet:,.2f} TL")
 m2.metric("Sadece Sosyal Paket (Aylık)", f"{toplam_sosyal_yardim:,.2f} TL")
 m3.metric("Ücrete Bağlı Ek (Aylık)", f"{aylik_ek_ucret:,.2f} TL")
 
-# Detaylı Tablo
+# Detaylı Tablo (DÜZELTME: Tabloya yeni kalemler eklendi)
 detay_data = {
-    "Kalem": ["Ana Maaş (Brüt)", "Ücrete Bağlı Ek Ödeme", "Gıda", "Yakacak", "Yemek (Aylık)", "Bayram (Aylık Pay)", "İkramiye (Pay)", "Diğer"],
-    "Tutar (TL)": [aylik_ana_brut, aylik_ek_ucret, gıda, yakacak, aylik_yemek, aylik_bayram, aylik_ikramiye_maliyeti, diger_sosyal]
+    "Kalem": ["Ana Maaş (Brüt)", "Ücrete Bağlı Ek Ödeme", "Gıda", "Yakacak", "Yemek (Aylık)", "Bayram (Pay)", "Aile Yardımı", "Çocuk Yardımı", "İkramiye (Pay)", "Diğer"],
+    "Tutar (TL)": [aylik_ana_brut, aylik_ek_ucret, gıda, yakacak, aylik_yemek, aylik_bayram, aylik_aile_yardimi, aylik_cocuk_yardimi, aylik_ikramiye_maliyeti, diger_sosyal]
 }
 st.table(pd.DataFrame(detay_data))
 
@@ -148,7 +159,6 @@ col_btn1, col_btn2 = st.columns(2)
 
 with col_btn1:
     if st.button("💾 Veritabanına (Google Sheets) Kaydet"):
-        # Kullanıcı seçilmediyse kaydı engelle
         if kullanici_adi == "Seçiniz...":
             st.warning("⚠️ Lütfen önce sol menüden isminizi seçiniz!")
         else:
@@ -169,7 +179,7 @@ with col_btn1:
                 
                 yeni_satir = [
                     datetime.now().strftime("%d/%m/%Y %H:%M"),
-                    kullanici_adi, # YENİ: Artık seçilen isim kaydediliyor
+                    kullanici_adi,
                     isyeri,
                     f"{aylik_ana_brut:.2f}",
                     f"{aylik_ek_ucret:.2f}",
