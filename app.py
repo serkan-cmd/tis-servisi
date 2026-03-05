@@ -4,6 +4,42 @@ import pandas as pd
 # Sayfa ayarları
 st.set_page_config(page_title="Petrol-İş TİS Servisi v1.0", layout="wide")
 
+# --- GÜVENLİK PANELİ FONKSİYONU ---
+def check_password():
+    """Doğru şifre girilirse True döndürür."""
+    if "password_correct" not in st.session_state:
+        st.session_state["password_correct"] = False
+
+    if st.session_state["password_correct"]:
+        return True
+
+    # Giriş Ekranı Tasarımı
+    st.markdown("<h2 style='text-align: center;'>🔐 Petrol-İş TİS Servisi Giriş</h2>", unsafe_allow_html=True)
+    
+    col1, col2, col3 = st.columns([1,2,1]) 
+    with col2:
+        password = st.text_input("Lütfen Giriş Şifresini Yazın", type="password")
+        if st.button("Giriş Yap"):
+            # ŞİFREYİ BURADAN DEĞİŞTİREBİLİRSİN
+            if password == "tis2026": 
+                st.session_state["password_correct"] = True
+                st.rerun()
+            else:
+                st.error("❌ Hatalı şifre! Lütfen tekrar deneyin.")
+    return False
+
+# Şifre kontrolü geçilemezse uygulamanın geri kalanını çalıştırma
+if not check_password():
+    st.stop()
+
+# --- UYGULAMA BAŞLANGICI (Şifre doğruysa burası çalışır) ---
+
+# Yan Menüde Çıkış Butonu
+with st.sidebar:
+    if st.button("Güvenli Çıkış"):
+        st.session_state["password_correct"] = False
+        st.rerun()
+
 st.title("📊 Petrol-İş TİS Servisi")
 st.markdown("---")
 
@@ -69,5 +105,15 @@ if st.button("📊 Excel Çıktısı Hazırla"):
         "Ek Ödeme": hesaplanan_ek,
         "Toplam": toplam_maliyet
     }])
-    df.to_excel("tis_ozet.xlsx", index=False)
-    st.success("Excel hazırlandı! (Geliştirme aşamasında)")
+    # Excel dosyasını indirme butonu ekleme (Streamlit yolu)
+    import io
+    output = io.BytesIO()
+    with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
+        df.to_excel(writer, index=False, sheet_name='Özet')
+    
+    st.download_button(
+        label="📥 Excel Dosyasını İndir",
+        data=output.getvalue(),
+        file_name=f"tis_ozet_{isyeri}.xlsx",
+        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    )
