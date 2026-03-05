@@ -133,7 +133,7 @@ with tab1:
             
             # Aile Yardımı Bölümü
             yasal_aile = st.checkbox("Yasal Aile Yardımı Uygula")
-            maktu_aile = st.number_input("Maktu Ek Aile Yardımı", 0.0, help="Sendika tarafından kazanılan sabit tutar")
+            maktu_aile = st.number_input("Maktu Aile Yardımı", 0.0, help="Sendika tarafından kazanılan sabit tutar")
             
             st.divider()
             
@@ -166,6 +166,10 @@ with tab1:
             ek_ozel_val = st.number_input("Miktar", 0.0, key="eo_v")
 
     # --- HESAPLAMALAR ---
+    
+    # Varsayılan değer: 2 çocuk (TİS standartı)
+    sabit_cocuk_sayisi = 2 
+
     ay_ek1 = calc_hybrid(ek_val, ek_mod, g_brut) if ek_per == "Aylık" else calc_hybrid(ek_val, ek_mod, g_brut) / 12
     ay_ek2 = calc_hybrid(ek2_val, ek2_mod, g_brut) if ek2_per == "Aylık" else calc_hybrid(ek2_val, ek2_mod, g_brut) / 12
     
@@ -178,7 +182,20 @@ with tab1:
     ay_izin = calc_hybrid(izin_val, izin_mod, g_brut) / 12
     ay_bayram = calc_hybrid(bayram_val, bayram_mod, g_brut) / 12
     ay_prim = calc_hybrid(prim_val, prim_mod, g_brut)
-    ay_yasal_sosyal = (aile_yasal if yasal_aile else 0) + (c06 * cocuk_0_6_yasal) + (c6ustu * cocuk_6_ustu_yasal)
+
+    # --- YENİ AİLE & ÇOCUK HESAPLAMA MANTIĞI ---
+    # Yasal Aile Yardımı
+    yasal_aile_tutar = aile_yasal if yasal_aile else 0
+    
+    # Yasal Çocuk Yardımı: (Yasal 6+ değerinin 2 katı) * 2 Çocuk
+    yasal_cocuk_tutar = (cocuk_6_ustu_yasal * 2 * sabit_cocuk_sayisi) if yasal_cocuk_tik else 0
+    
+    # Maktu Çocuk Yardımı: Birim * 2 Çocuk
+    maktu_cocuk_toplam = (maktu_cocuk_birim * sabit_cocuk_sayisi)
+    
+    # Toplam Aile/Çocuk Paketi
+    ay_aile_cocuk_paketi = yasal_aile_tutar + maktu_aile + yasal_cocuk_tutar + maktu_cocuk_toplam
+    # ------------------------------------------
     
     # Vardiya ve Gece Hesaplama
     v_tutar = calc_hybrid(v_val, v_mod, g_brut)
@@ -188,7 +205,12 @@ with tab1:
     if g_tip == "Fiili (80/225)": g_tutar = (g_tutar * 80) / 225
 
     ay_ikramiye = (g_brut * ikramiye) / 12
-    toplam_sosyal = gida + yakacak + ay_izin + ay_bayram + ay_prim + (giyim+ayakkabi+yilbasi)/12 + ay_ikramiye + ay_yasal_sosyal + maktu_aile + v_tutar + g_tutar + ay_ek_ozel
+    
+    # Toplam Sosyal Paket
+    toplam_sosyal = (gida + yakacak + ay_izin + ay_bayram + ay_prim + 
+                     (giyim + ayakkabi + yilbasi) / 12 + ay_ikramiye + 
+                     ay_aile_cocuk_paketi + v_tutar + g_tutar + ay_ek_ozel)
+    
     t_maliyet = a_brut + ay_ek1 + ay_ek2 + toplam_sosyal
 
     # --- SONUÇLAR ---
