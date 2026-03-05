@@ -11,10 +11,10 @@ st.set_page_config(page_title="Petrol-İş TİS Servisi v1.2", layout="wide")
 # --- KULLANICI VERİTABANI ---
 # ID: İsim eşleşmeleri
 users = {
-    "ozgun2026": "Özgün Çelik Aygün",
-    "tugce2026": "Tuğçe Kalyoncu",
-    "melis2026": "Melis Akkuzu",
-    "serkan2026": "Serkan Gümüşbaş"
+    "ozgun2026": {"isim": "Özgün Çelik Aygün", "sifre": "ozgun123"},
+    "tugce2026": {"isim": "Tuğçe Kalyoncu", "sifre": "tugce456"},
+    "melis2026": {"isim": "Melis Akkuzu", "sifre": "melis789"},
+    "serkan2026": {"isim": "Serkan Gümüşbaş", "sifre": "serkan321"}
 }
 GIRIS_SIFRESI = "tis2026" # Ortak şifre (İstersen her kullanıcıya özel de yapabiliriz)
 
