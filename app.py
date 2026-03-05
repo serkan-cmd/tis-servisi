@@ -12,7 +12,7 @@ st.set_page_config(page_title="Petrol-İş TİS Servisi v1.2", layout="wide")
 st.markdown("""
     <style>
     .stApp {
-        background-color: #94c7ec; /* Açık Mavi */
+        background-color: #f8f4ff; /* Açık Mavi */
     }
     .stMetric {
         background-color: #ffffff;
