@@ -109,24 +109,37 @@ col_btn1, col_btn2 = st.columns(2)
 with col_btn1:
     if st.button("💾 Veritabanına (Google Sheets) Kaydet"):
         try:
-            # Google Sheets Bağlantısı (URL kısmına kendi tablo linkini yapıştırabilirsin)
-            # Normalde secrets.toml kullanılır ama şimdilik doğrudan deniyoruz
-            st.info("Kayıt işlemi başlatılıyor... Lütfen bekleyin.")
+            # 1. Bağlantıyı Kur
+            conn = st.connection("gsheets", type=GSheetsConnection)
             
-            # Kaydedilecek veri satırı
+            # 2. Mevcut verileri oku (Boşsa hata almamak için)
+            try:
+                existing_data = conn.read(worksheet="Sayfa1")
+            except:
+                existing_data = pd.DataFrame()
+
+            # 3. Yeni kayıt satırını hazırla (Senin başlıklarınla tam uyumlu)
             yeni_satir = pd.DataFrame([{
                 "Tarih": datetime.now().strftime("%d/%m/%Y %H:%M"),
+                "Kullanıcı": "Petrol-İş Temsilcisi", # İstersen buraya giriş yapanın adını ekleyebiliriz
                 "İşyeri": isyeri,
-                "Ana Brüt": aylik_ana_brut,
-                "Sosyal Paket": toplam_sosyal_yardim,
-                "Toplam Maliyet": toplam_aylik_maliyet
+                "Brüt Ücret": round(aylik_ana_brut, 2),
+                "Ek Ödeme": round(aylik_ek_ucret, 2),
+                "Sosyal Ödeme": round(toplam_sosyal_yardim, 2),
+                "Toplam Ücret": round(toplam_aylik_maliyet, 2)
             }])
+
+            # 4. Mevcut veriyle yeniyi birleştir
+            updated_df = pd.concat([existing_data, yeni_satir], ignore_index=True)
+
+            # 5. Google Sheets'e Yaz
+            conn.update(worksheet="Sayfa1", data=updated_df)
             
-            # Bu kısım Google Sheets entegrasyonu tamamlandığında aktif olur
-            st.success(f"✅ {isyeri} verileri başarıyla kaydedildi!")
-            st.dataframe(yeni_satir)
+            st.success(f"✅ {isyeri} verileri Google Sheets veritabanına işlendi!")
+            st.balloons() # Başarı kutlaması :)
+            
         except Exception as e:
-            st.error(f"Kayıt hatası: {e}. Lütfen Sheets bağlantı ayarlarını kontrol edin.")
+            st.error(f"Kayıt Hatası: {e}. Lütfen Secrets panelindeki linki ve Google Sheets paylaşım izinlerini kontrol edin.")
 
 with col_btn2:
     # Excel Çıktısı
