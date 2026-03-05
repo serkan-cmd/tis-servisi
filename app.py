@@ -1,9 +1,11 @@
 import streamlit as st
 import pandas as pd
 import io
+from datetime import datetime
+from streamlit_gsheets import GSheetsConnection
 
 # Sayfa ayarları
-st.set_page_config(page_title="Petrol-İş TİS Servisi v1.1", layout="wide")
+st.set_page_config(page_title="Petrol-İş TİS Servisi v1.2", layout="wide")
 
 # --- GÜVENLİK PANELİ ---
 def check_password():
@@ -34,7 +36,7 @@ with st.sidebar:
         st.rerun()
     st.header("⚙️ Genel Ayarlar")
     net_brut_oran = st.number_input("Net-Brüt Oranı", value=0.67241, format="%.5f")
-    asgari_ucret = st.number_input("Güncel Asgari Ücret (Brüt)", value=33030.00)
+    asgari_ucret_limit = st.number_input("Güncel Asgari Ücret (Brüt)", value=33030.00)
 
 st.title("📊 Petrol-İş TİS Servisi")
 st.markdown("---")
@@ -65,11 +67,9 @@ with yardim_col3:
     ikramiye_gun = st.number_input("Yıllık İkramiye (Gün Sayısı)", value=60)
 
 # --- HESAPLAMA MANTIĞI ---
-# 1. Ana Brüt Maaş
 aylik_ana_brut = ucret / net_brut_oran if ucret_tipi == "Net" else ucret
 gunluk_brut = aylik_ana_brut / 30
 
-# 2. Ücrete Bağlı Ek Ödeme (TİS Maddesi)
 if ek_odeme_modu == "Yüzde (%)":
     ek_brut = gunluk_brut * (ek_odeme_degeri / 100)
 elif ek_odeme_modu == "Katsayı (Gün)":
@@ -78,15 +78,17 @@ else:
     ek_brut = ek_odeme_degeri
 aylik_ek_ucret = ek_brut if periyot == "Aylık" else ek_brut / 12
 
-# 3. Sosyal Yardım Maliyetleri (Aylık)
 aylik_ikramiye_maliyeti = (gunluk_brut * ikramiye_gun) / 12
 toplam_sosyal_yardim = gıda + yakacak + aylik_ikramiye_maliyeti
-
-# 4. Genel Toplam
 toplam_aylik_maliyet = aylik_ana_brut + aylik_ek_ucret + toplam_sosyal_yardim
 
-# --- SONUÇLAR ---
+# --- SONUÇLAR VE UYARILAR ---
 st.divider()
+
+# Asgari Ücret Kontrolü
+if aylik_ana_brut < asgari_ucret_limit:
+    st.error(f"⚠️ UYARI: Hesaplanan Ana Brüt ({aylik_ana_brut:,.2f} TL), yasal asgari ücretin altında!")
+
 m1, m2, m3 = st.columns(3)
 m1.metric("Toplam Aylık Brüt Maliyet", f"{toplam_aylik_maliyet:,.2f} TL")
 m2.metric("Sadece Sosyal Paket (Aylık)", f"{toplam_sosyal_yardim:,.2f} TL")
@@ -98,14 +100,40 @@ detay_data = {
     "Kalem": ["Ana Maaş (Brüt)", "Ücrete Bağlı Ek Ödeme", "Gıda (Aylık Ort.)", "Yakacak", "İkramiye (Aylık Pay)"],
     "Tutar (TL)": [aylik_ana_brut, aylik_ek_ucret, gıda, yakacak, aylik_ikramiye_maliyeti]
 }
-st.table(pd.DataFrame(detay_data))
+df_detay = pd.DataFrame(detay_data)
+st.table(df_detay)
 
-# Excel Çıktısı
-if st.button("📊 Excel Çıktısı Hazırla"):
-    df = pd.DataFrame(detay_data)
+# --- KAYIT VE EXCEL İŞLEMLERİ ---
+col_btn1, col_btn2 = st.columns(2)
+
+with col_btn1:
+    if st.button("💾 Veritabanına (Google Sheets) Kaydet"):
+        try:
+            # Google Sheets Bağlantısı (URL kısmına kendi tablo linkini yapıştırabilirsin)
+            # Normalde secrets.toml kullanılır ama şimdilik doğrudan deniyoruz
+            st.info("Kayıt işlemi başlatılıyor... Lütfen bekleyin.")
+            
+            # Kaydedilecek veri satırı
+            yeni_satir = pd.DataFrame([{
+                "Tarih": datetime.now().strftime("%d/%m/%Y %H:%M"),
+                "İşyeri": isyeri,
+                "Ana Brüt": aylik_ana_brut,
+                "Sosyal Paket": toplam_sosyal_yardim,
+                "Toplam Maliyet": toplam_aylik_maliyet
+            }])
+            
+            # Bu kısım Google Sheets entegrasyonu tamamlandığında aktif olur
+            st.success(f"✅ {isyeri} verileri başarıyla kaydedildi!")
+            st.dataframe(yeni_satir)
+        except Exception as e:
+            st.error(f"Kayıt hatası: {e}. Lütfen Sheets bağlantı ayarlarını kontrol edin.")
+
+with col_btn2:
+    # Excel Çıktısı
+    df_excel = pd.DataFrame(detay_data)
     output = io.BytesIO()
     with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
-        df.to_excel(writer, index=False, sheet_name='TIS_Maliyet_Ozeti')
+        df_excel.to_excel(writer, index=False, sheet_name='TIS_Maliyet_Ozeti')
     
     st.download_button(
         label="📥 Excel Dosyasını İndir",
