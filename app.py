@@ -138,7 +138,6 @@ with tab1:
             st.divider()
             
             # Çocuk Yardımı Bölümü
-            cocuk_sayisi = st.number_input("Çocuk Sayısı", 0, step=1)
             yasal_cocuk_tik = st.checkbox("Yasal Çocuk Zammı Uygula", help="Yasal 6+ yaş tutarının 2 katı (Her çocuk için)")
             maktu_cocuk_birim = st.number_input("Maktu Çocuk Yardımı (Birim)", 0.0, help="Çocuk başına maktu ödeme tutarı")
     st.divider()
