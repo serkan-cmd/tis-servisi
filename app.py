@@ -7,7 +7,20 @@ from datetime import datetime
 
 # Sayfa ayarları
 st.set_page_config(page_title="Petrol-İş TİS Servisi v1.2", layout="wide")
-
+# --- MAVİ ARKA PLAN VE STİL AYARLARI ---
+st.markdown("""
+    <style>
+    .stApp {
+        background-color: #e3f2fd; /* Açık Mavi */
+    }
+    .stMetric {
+        background-color: #ffffff;
+        padding: 10px;
+        border-radius: 10px;
+        border: 1px solid #bbdefb;
+    }
+    </style>
+    """, unsafe_allow_html=True)
 # --- GÜVENLİK PANELİ ---
 def check_password():
     if "password_correct" not in st.session_state:
@@ -42,7 +55,15 @@ with st.sidebar:
     kullanici_adi = st.selectbox("👤 İşlemi Yapan Uzman", temsilci_listesi)
     
     st.divider()
-    net_brut_oran = st.number_input("Net-Brüt Oranı", value=0.67241, format="%.5f")
+    # Net-Brüt Oranı (Radyo Buton ile Seçenekler)
+    oran_etiketleri = {
+        0.71491: "%15 Vergi Dilimi (0.71491)",
+        0.67241: "%20 Vergi Dilimi (0.67241)",
+        0.61291: "%27 Vergi Dilimi (0.61291)",
+        0.54491: "%35 Vergi Dilimi (0.54491)"
+    }
+    secilen_oran = st.radio("📉 Net-Brüt Oranı Seçimi", options=list(oran_etiketleri.keys()), 
+                            format_func=lambda x: oran_etiketleri[x], index=1)
     asgari_ucret_limit = st.number_input("Güncel Asgari Ücret (Brüt)", value=33030.00)
     aile_yardimi = st.number_input("Güncel Aile Yardımı", value=3154.63)
     cocuk_yardimi_0_6 = st.number_input("Güncel Çocuk Yardımı 0-6 Yaş", value=693.94)
