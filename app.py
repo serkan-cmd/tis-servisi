@@ -126,30 +126,30 @@ with tab1:
             st.write("🍞 **Gıda Yardımı (Aylık)**")
             g_tip = st.radio("Gıda Tip", ["Net", "Brüt"], horizontal=True)
             g_val = st.number_input("Gıda Tutarı", 0.0)
-            gida = brutlestir(g_val, g_tip, secilen_oran)
+            gida = yardim_brutlestir(g_val, g_tip, secilen_oran)
     with col_s2:
         with st.container(border=True):
             st.write("🔥 **Yakacak Yardımı (Aylık)**")
             y_tip = st.radio("Yakacak Tip", ["Net", "Brüt"], horizontal=True)
             y_val = st.number_input("Yakacak Tutarı", 0.0)
-            yakacak = brutlestir(y_val, y_tip, secilen_oran)
+            yakacak = yardim_brutlestir(y_val, y_tip, secilen_oran)
 
     col_s3, col_s4, col_s5 = st.columns(3)
     with col_s3:
         with st.container(border=True):
             st.write("👕 **Giyim (Yıllık)**")
             giy_tip = st.radio("Giyim Tip", ["Net", "Brüt"], horizontal=True)
-            giyim = brutlestir(st.number_input("Giyim Tutar", 0.0), giy_tip, secilen_oran)
+            giyim = yardim_brutlestir(st.number_input("Giyim Tutar", 0.0), giy_tip, secilen_oran)
     with col_s4:
         with st.container(border=True):
             st.write("👟 **Ayakkabı (Yıllık)**")
             ayk_tip = st.radio("Ayakkabı Tip", ["Net", "Brüt"], horizontal=True)
-            ayakkabi = brutlestir(st.number_input("Ayakkabı Tutar", 0.0), ayk_tip, secilen_oran)
+            ayakkabi = yardim_brutlestir(st.number_input("Ayakkabı Tutar", 0.0), ayk_tip, secilen_oran)
     with col_s5:
         with st.container(border=True):
             st.write("🎁 **Yılbaşı (Yıllık)**")
             yil_tip = st.radio("Yılbaşı Tip", ["Net", "Brüt"], horizontal=True)
-            yilbasi = brutlestir(st.number_input("Yılbaşı Tutar", 0.0), yil_tip, secilen_oran)
+            yilbasi = yardim_brutlestir(st.number_input("Yılbaşı Tutar", 0.0), yil_tip, secilen_oran)
 
     col_s6, col_s7, col_s8 = st.columns(3)
     with col_s6:
@@ -158,21 +158,21 @@ with tab1:
             iz_m = st.selectbox("İzin Mod", ["Maktu", "Katsayı (Gün)"])
             iz_t = st.radio("İzin Tip", ["Net", "Brüt"], horizontal=True)
             iz_v = st.number_input("İzin Değer", 0.0)
-            ay_izin = brutlestir(calc_hybrid(iz_v, iz_m, g_brut), iz_t, secilen_oran) / 12
+            ay_izin = yardim_brutlestir(calc_hybrid(iz_v, iz_m, g_brut), iz_t, secilen_oran) / 12
     with col_s7:
         with st.container(border=True):
             st.write("🎉 **Bayram Yardımı**")
             ba_m = st.selectbox("Bayram Mod", ["Maktu", "Katsayı (Gün)"])
             ba_t = st.radio("Bayram Tip", ["Net", "Brüt"], horizontal=True)
             ba_v = st.number_input("Bayram Değer", 0.0)
-            ay_bayram = brutlestir(calc_hybrid(ba_v, ba_m, g_brut), ba_t, secilen_oran) / 12
+            ay_bayram = yardim_brutlestir(calc_hybrid(ba_v, ba_m, g_brut), ba_t, secilen_oran) / 12
     with col_s8:
         with st.container(border=True):
             st.write("🏆 **Prim Ödemesi**")
             pr_m = st.selectbox("Prim Mod", ["Maktu", "Katsayı (Gün)", "Yüzde (%)"])
             pr_t = st.radio("Prim Tip", ["Net", "Brüt"], horizontal=True)
             pr_v = st.number_input("Prim Değer", 0.0)
-            ay_prim = brutlestir(calc_hybrid(pr_v, pr_m, g_brut), pr_t, secilen_oran)
+            ay_prim = yardim_brutlestir(calc_hybrid(pr_v, pr_m, g_brut), pr_t, secilen_oran)
 
     with st.container(border=True):
         ikramiye = st.number_input("💰 Yıllık Toplam İkramiye Günü", value=0)
