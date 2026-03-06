@@ -131,7 +131,7 @@ with tab2:
         
         # Süre Hesaplama ve Uyarı
         sozlesme_suresi = (tis_bitis - tis_baslangic).days / 365
-        if sozlesme_suresi < 1:
+        if sozlesme_suresi < 1,1:
             st.warning("⚠️ TİS kanunen 1 yıldan az olamaz.")
         elif sozlesme_suresi > 3:
             st.error("❌ TİS kanunen 3 yıldan fazla olamaz.")
