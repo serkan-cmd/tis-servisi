@@ -99,6 +99,20 @@ with tab2:
     with col_is1:
         isyeri_adi = st.text_input("İşyeri Tam Adı", placeholder="Örn: ABC Kimya A.Ş.")
         subeler = st.multiselect("Bağlı Olduğu Şubeler", ["Adana", "Adıyaman", "Ankara", "Bandırma", "Batman", "Bursa", "Ceyhan", "Çankırı", "Gebze", "İstanbul 1", "İstanbul 2", "İzmir", "Kırıkkale", "Kocaeli", "Mersin", "Trakya", "Aliağa"])
+        # --- YENİ: TARİH ALANLARI ---
+        st.divider()
+        st.subheader("📅 Sözleşme Dönemi")
+        tis_baslangic = st.date_input("Yürürlük Başlangıç Tarihi", value=datetime.now())
+        tis_bitis = st.date_input("Yürürlük Bitiş Tarihi", value=datetime.now().replace(year=datetime.now().year + 2))
+        
+        # Süre Hesaplama ve Uyarı
+        sozlesme_suresi = (tis_bitis - tis_baslangic).days / 365
+        if sozlesme_suresi < 1:
+            st.warning("⚠️ TİS kanunen 1 yıldan az olamaz.")
+        elif sozlesme_suresi > 3:
+            st.error("❌ TİS kanunen 3 yıldan fazla olamaz.")
+        else:
+            st.success(f"✅ Sözleşme Süresi: {sozlesme_suresi:.1f} Yıl")
     with col_is2:
         toplam_calisan = st.number_input("Toplam Çalışan Sayısı", value=0)
         uye_sayisi = st.number_input("Sendikalı Üye Sayısı", value=0)
