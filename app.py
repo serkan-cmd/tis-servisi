@@ -99,6 +99,15 @@ with tab1:
         ek2_val = st.number_input("Değer", value=0.0, key="ek2_val")
         ek2_per = st.selectbox("Periyot", ["Aylık", "Yıllık"], key="ek2_per")
 
+    izin_val = st.session_state.get("iz_v", 0.0)
+    izin_mod = st.session_state.get("iz_m", "Maktu")
+    
+    bayram_val = st.session_state.get("ba_v", 0.0)
+    bayram_mod = st.session_state.get("ba_m", "Maktu")
+    
+    prim_val = st.session_state.get("pr_v", 0.0)
+    prim_mod = st.session_state.get("pr_m", "Maktu")
+
     # --- HESAPLAMA ÇEKİRDEĞİ ---
     sabitler = {0.71491: 4462.03, 0.67241: 4788.45, 0.61291: 5865.80, 0.54491: 5865.80}
     a_brut = (u_tutar - sabitler[secilen_oran]) / secilen_oran if u_tipi == "Net" else u_tutar
@@ -158,7 +167,9 @@ with tab1:
             iz_m = st.selectbox("Mod", ["Maktu", "Katsayı (Gün)"], key="iz_m")
             iz_t = st.radio("Tip", ["Net", "Brüt"], horizontal=True, key="iz_t")
             iz_v = st.number_input("Değer", 0.0, key="iz_v")
-            ay_izin = brutlestir(calc_hybrid(iz_v, iz_m, g_brut), iz_t, secilen_oran) / 12
+            # Değişkenleri burada doğrudan tanımla, hesaplamada kullan
+            izin_val, izin_mod, izin_tip = iz_v, iz_m, iz_t
+            ay_izin = brutlestir(calc_hybrid(izin_val, izin_mod, g_brut), izin_tip, secilen_oran) / 12
     with col_s7:
         with st.container(border=True):
             st.write("🎉 **Bayram Yardımı**")
