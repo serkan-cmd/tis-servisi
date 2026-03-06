@@ -113,11 +113,19 @@ tab1, tab2 = st.tabs(["💰 Ücret ve Sosyal Ödemeler", "🏢 İşyeri Bilgiler
 
 with tab2:
     st.header("🏢 İşyeri ve Şube Bilgileri")
+    
+    # Veriyi bir kez çek
+    df_tis = verileri_yukle_ve_getir()
+    
+    # "Yeni Kayıt" butonu ile tab2 içeriği:
+    if st.button("➕ Yeni Kayıt Başlat"):
+        if "yuklenen_kayit" in st.session_state:
+            del st.session_state["yuklenen_kayit"]
+        st.rerun()
 
     with st.expander("📂 Kayıtlı Veriyi Çağır", expanded=True):
-        df = verileri_yukle_ve_getir() # Yukarıda tanımladığımız fonksiyon
-        if not df.empty:
-            isyeri_listesi = df["İşyeri"].unique().tolist()
+        if not df_tis.empty:
+            isyeri_listesi = df_tis["İşyeri"].unique().tolist()
             secilen_isyeri = st.selectbox("Güncellenecek İşyerini Seçin", isyeri_listesi)
             
             if st.button("Verileri Seçili İşyeri İçin Yükle"):
@@ -127,8 +135,15 @@ with tab2:
                 # Verileri session_state'e aktar (Böylece diğer sekmeler de okuyabilir)
                 st.session_state["yuklenen_kayit"] = secili_kayit
                 st.success(f"{secilen_isyeri} verileri yüklendi!")
+
+        st.divider()
+        st.subheader("📋 Kayıtlı TİS Verileri")
+        df = verileri_yukle_ve_getir()
+        if not df.empty:
+            # İstersen sadece seçilen sütunları göster
+            st.dataframe(df[["İşyeri", "TİS Başlangıç", "Toplam Maliyet"]], use_container_width=True)
         else:
-            st.info("Veritabanında henüz kayıt bulunamadı.")
+            st.info("Henüz veritabanında kayıtlı bir TİS dosyası yok.")
             
     st.divider()
     col_is1, col_is2 = st.columns(2)
