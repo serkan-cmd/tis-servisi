@@ -66,18 +66,22 @@ with st.sidebar:
     
     st.info(f"Otomatik Muafiyetler:\n- Aile: {muafiyet_aile:,.2f} TL\n- Çocuk (2): {muafiyet_cocuk:,.2f} TL")
 
-# --- HESAPLAMA ARAÇLARI ---
-def calc_hybrid(val, mode, daily_base):
-    if mode == "Maktu": return val
-    elif mode == "Katsayı (Gün)": return daily_base * val
-    elif mode == "Yüzde (%)": return daily_base * 30 * (val / 100)
-    return 0
+# --- HESAPLAMA ARAÇLARI (GÜNCELLENDİ) ---
 
-def brutlestir(tutar, tip, oran):
+def maas_brutlestir(tutar, tip, oran):
+    """Ana ücret için istisnalı brütleştirme"""
     sabitler = {0.71491: 4462.03, 0.67241: 4788.45, 0.61291: 5865.80, 0.54491: 5865.80}
     if tip == "Brüt": return tutar
     sabit = sabitler.get(oran, 5865.80)
+    # Formül: (Net - İstisna) / Katsayı
     return (tutar - sabit) / oran
+
+def yardim_brutlestir(tutar, tip, oran):
+    """Sosyal yardımlar için doğrudan brütleştirme"""
+    if tip == "Brüt": return tutar
+    # Sosyal yardımlarda istisna düşülmez, doğrudan katsayıya bölünür
+    # Formül: Net / Katsayı
+    return tutar / oran
 
 # --- SEKME YAPISI ---
 tab1, tab2 = st.tabs(["💰 Ücret ve Sosyal Ödemeler", "🏢 İşyeri Bilgileri"])
@@ -98,7 +102,7 @@ with tab1:
     c1, c2, c3 = st.columns(3)
     with c1:
         u_tipi = st.radio("Ücret Tipi", ["Net", "Brüt"])
-        u_tutar = st.number_input("Maaş Tutarı", value=20000.0)
+        u_tutar = st.number_input("Çıplak Ücret Tutarı", value=20000.0)
     with c2:
         st.info("Ek Ödeme 1")
         ek_mod = st.selectbox("Hesaplama Modu", ["Maktu", "Katsayı (Gün)", "Yüzde (%)"], key="ek1_mod")
