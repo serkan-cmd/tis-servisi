@@ -90,11 +90,47 @@ def yardim_brutlestir(tutar, tip, oran):
     # Formül: Net / Katsayı
     return tutar / oran
 
+def verileri_yukle_ve_getir():
+    """Google Sheets'ten tüm kayıtları çeker."""
+    try:
+        scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
+        s = st.secrets["connections"]["gsheets"]
+        creds = ServiceAccountCredentials.from_json_keyfile_dict(dict(s), scope)
+        client = gspread.authorize(creds)
+        
+        # Veritabanı dosyanı aç
+        sheet = client.open_by_key("1kb6ceU5NjBNl1PB3vCspw90s8lYRVU7XVbMt97tfEbg").sheet1
+        
+        # Tüm veriyi sözlük formatında al
+        data = sheet.get_all_records()
+        return pd.DataFrame(data)
+    except Exception as e:
+        st.error(f"Veritabanına bağlanılamadı: {e}")
+        return pd.DataFrame()
+
 # --- SEKME YAPISI ---
 tab1, tab2 = st.tabs(["💰 Ücret ve Sosyal Ödemeler", "🏢 İşyeri Bilgileri"])
 
 with tab2:
     st.header("🏢 İşyeri ve Şube Bilgileri")
+
+    with st.expander("📂 Kayıtlı Veriyi Çağır", expanded=True):
+        df = verileri_yukle_ve_getir() # Yukarıda tanımladığımız fonksiyon
+        if not df.empty:
+            isyeri_listesi = df["İşyeri"].unique().tolist()
+            secilen_isyeri = st.selectbox("Güncellenecek İşyerini Seçin", isyeri_listesi)
+            
+            if st.button("Verileri Seçili İşyeri İçin Yükle"):
+                # Seçilen işyerine ait veriyi bul
+                secili_kayit = df[df["İşyeri"] == secilen_isyeri].iloc[0]
+                
+                # Verileri session_state'e aktar (Böylece diğer sekmeler de okuyabilir)
+                st.session_state["yuklenen_kayit"] = secili_kayit
+                st.success(f"{secilen_isyeri} verileri yüklendi!")
+        else:
+            st.info("Veritabanında henüz kayıt bulunamadı.")
+            
+    st.divider()
     col_is1, col_is2 = st.columns(2)
     with col_is1:
         isyeri_adi = st.text_input("İşyeri Tam Adı", placeholder="Örn: ABC Kimya A.Ş.")
