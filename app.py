@@ -128,6 +128,37 @@ with tab1:
         return (tutar - sabit) / oran
 
     st.markdown("### 🎁 Sosyal Yardımlar")
+    <style>
+        /* border=True olan tüm kutuları hedefle */
+        [data-testid="stVerticalBlock"] > [data-testid="stVerticalBlockBorderWrapper"] {
+            border-radius: 15px;
+            padding: 10px;
+        }
+    </style>
+    """, unsafe_allow_html=True)
+    # Gıda Yardımı için renk mantığı
+    g_tip = st.radio("Tip", ["Net", "Brüt"], horizontal=True, key="gida_t")
+    g_val = st.number_input("Tutar", 0.0, key="gida_v")
+
+    # Renk belirleme
+    if g_val == 0:
+        kutu_rengi = "#FFEBEE" # Açık kırmızı
+    elif g_tip == "Net":
+        kutu_rengi = "#E8F5E9" # Açık yeşil
+    else:
+        kutu_rengi = "#FFFDE7" # Açık sarı
+
+    # Konteynerı bu renk ile sarmalayalım
+    st.markdown(f"""
+    <div style="background-color: {kutu_rengi}; padding: 20px; border-radius: 10px; border: 1px solid #ddd;">
+        <h4 style="margin: 0;">🍞 Gıda Yardımı (Aylık)</h4>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    # İnputları kutunun içine görsel olarak hizalı göstermek için 
+    # biraz boşluk bırakıp devam ediyoruz. 
+    # Not: st.radio ve st.number_input'un kendisi HTML div'inin 
+    # içine 'gömülemez', ancak arka planı senkronize edebiliriz.
 
     def get_hex_color(val, tip):
         if val == 0: return "#FFEBEE"  # Açık kırmızı (Sıfır)
