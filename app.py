@@ -113,26 +113,23 @@ tab1, tab2 = st.tabs(["💰 Ücret ve Sosyal Ödemeler", "🏢 İşyeri Bilgiler
 
 with tab2:
     st.header("🏢 İşyeri ve Şube Bilgileri")
+    # Veriyi burada al ve "df" olarak kullan
+    df = verileri_yukle_ve_getir()
     
-    # Veriyi bir kez çek
-    df_tis = verileri_yukle_ve_getir()
-    
-    # "Yeni Kayıt" butonu ile tab2 içeriği:
     if st.button("➕ Yeni Kayıt Başlat"):
-        if "yuklenen_kayit" in st.session_state:
-            del st.session_state["yuklenen_kayit"]
+        for key in st.session_state.keys():
+            if key not in ["password_correct", "active_user"]:
+                del st.session_state[key]
         st.rerun()
 
     with st.expander("📂 Kayıtlı Veriyi Çağır", expanded=True):
-        if not df_tis.empty:
-            isyeri_listesi = df_tis["İşyeri"].unique().tolist()
+        if not df.empty:
+            isyeri_listesi = df["İşyeri"].unique().tolist()
             secilen_isyeri = st.selectbox("Güncellenecek İşyerini Seçin", isyeri_listesi)
             
             if st.button("Verileri Seçili İşyeri İçin Yükle"):
-                # Seçilen işyerine ait veriyi bul
+                # Artık "df" her yerde tanımlı olduğu için hata almazsın
                 secili_kayit = df[df["İşyeri"] == secilen_isyeri].iloc[0]
-                
-                # Verileri session_state'e aktar (Böylece diğer sekmeler de okuyabilir)
                 st.session_state["yuklenen_kayit"] = secili_kayit
                 st.success(f"{secilen_isyeri} verileri yüklendi!")
 
@@ -148,7 +145,7 @@ with tab2:
     st.divider()
     col_is1, col_is2 = st.columns(2)
     with col_is1:
-        isyeri_adi = st.text_input("İşyeri Tam Adı", placeholder="Örn: ABC Kimya A.Ş.")
+        isyeri_adi = st.text_input("İşyeri Tam Adı", key="isyeri_kutusu")
         subeler = st.multiselect("Bağlı Olduğu Şubeler", ["Adana", "Adıyaman", "Ankara", "Bandırma", "Batman", "Bursa", "Ceyhan", "Çankırı", "Gebze", "İstanbul 1", "İstanbul 2", "İzmir", "Kırıkkale", "Kocaeli", "Mersin", "Trakya", "Aliağa"])
         
         st.divider()
@@ -201,7 +198,7 @@ with tab2:
             st.success(f"✅ Sözleşme Süresi: {yil_hesabi} Yıl ({fark_gun} Gün)")
     
     with col_is2:
-        toplam_calisan = st.number_input("Toplam Çalışan Sayısı", value=0)
+        toplam_calisan = st.number_input("Toplam Çalışan Sayısı", value=0, key="calisan_sayisi_kutusu")
         uye_sayisi = st.number_input("Sendikalı Üye Sayısı", value=0)
         grev_yasagi = st.selectbox("Grev Yasağı Durumu", ["Grev Yasağı Yok", "Grev Yasağı Var"])
 
