@@ -38,7 +38,7 @@ def check_password():
 
 if not check_password(): st.stop()
 
-# --- SIDEBAR (Güncellenmiş) ---
+# --- SIDEBAR ---
 with st.sidebar:
     st.markdown(f"### 👤 Uzman: **{st.session_state['active_user']}**")
     if st.button("Güvenli Çıkış"):
@@ -47,7 +47,6 @@ with st.sidebar:
     st.divider()
     st.header("⚙️ Genel Ayarlar")
     
-    # Asgari ücreti en üste alıyoruz ki aşağıda hesaplamada kullanabilelim
     asgari_ucret_limit = st.number_input("Güncel Asgari Ücret (Brüt)", value=33030.00)
     
     oran_etiketleri = {
@@ -62,11 +61,23 @@ with st.sidebar:
     cocuk_0_6_yasal = st.number_input("657 S.K. Çocuk (0-6)", value=693.94)
     cocuk_6_ustu_yasal = st.number_input("657 S.K. Çocuk (6+)", value=346.97)
     
-    # Muafiyet Hesapları
     muafiyet_aile = asgari_ucret_limit * 0.10
     muafiyet_cocuk = (asgari_ucret_limit * 0.02) * 2 
     
     st.info(f"Otomatik Muafiyetler:\n- Aile: {muafiyet_aile:,.2f} TL\n- Çocuk (2): {muafiyet_cocuk:,.2f} TL")
+
+# --- HESAPLAMA ARAÇLARI ---
+def calc_hybrid(val, mode, daily_base):
+    if mode == "Maktu": return val
+    elif mode == "Katsayı (Gün)": return daily_base * val
+    elif mode == "Yüzde (%)": return daily_base * 30 * (val / 100)
+    return 0
+
+def brutlestir(tutar, tip, oran):
+    sabitler = {0.71491: 4462.03, 0.67241: 4788.45, 0.61291: 5865.80, 0.54491: 5865.80}
+    if tip == "Brüt": return tutar
+    sabit = sabitler.get(oran, 5865.80)
+    return (tutar - sabit) / oran
 
 # --- SEKME YAPISI ---
 tab1, tab2 = st.tabs(["💰 Ücret ve Sosyal Ödemeler", "🏢 İşyeri Bilgileri"])
@@ -81,9 +92,6 @@ with tab2:
         toplam_calisan = st.number_input("Toplam Çalışan Sayısı", value=0)
         uye_sayisi = st.number_input("Sendikalı Üye Sayısı", value=0)
         grev_yasagi = st.selectbox("Grev Yasağı Durumu", ["Grev Yasağı Yok", "Grev Yasağı Var"])
-
-    izin_val, izin_mod, izin_tip = 0.0, "Maktu", "Brüt"
-    bayram_val, bayram_mod, bayram_tip = 0.0, "Maktu", "Brüt"
 
 with tab1:
     st.header("💵 Ücret ve Ek Ödemeler")
@@ -102,98 +110,70 @@ with tab1:
         ek2_val = st.number_input("Değer", value=0.0, key="ek2_val")
         ek2_per = st.selectbox("Periyot", ["Aylık", "Yıllık"], key="ek2_per")
 
-    izin_val = st.session_state.get("iz_v", 0.0)
-    izin_mod = st.session_state.get("iz_m", "Maktu")
-    
-    bayram_val = st.session_state.get("ba_v", 0.0)
-    bayram_mod = st.session_state.get("ba_m", "Maktu")
-    
-    prim_val = st.session_state.get("pr_v", 0.0)
-    prim_mod = st.session_state.get("pr_m", "Maktu")
-
-    # --- HESAPLAMA ÇEKİRDEĞİ ---
-    sabitler = {0.71491: 4462.03, 0.67241: 4788.45, 0.61291: 5865.80, 0.54491: 5865.80}
-    a_brut = (u_tutar - sabitler[secilen_oran]) / secilen_oran if u_tipi == "Net" else u_tutar
+    # Temel Maaş Hesaplama
+    a_brut = brutlestir(u_tutar, u_tipi, secilen_oran)
     g_brut = a_brut / 30
-
-    def calc_hybrid(val, mode, daily_base):
-        if mode == "Maktu": return val
-        elif mode == "Katsayı (Gün)": return daily_base * val
-        elif mode == "Yüzde (%)": return daily_base * 30 * (val / 100)
-        return 0
-
-    def brutlestir(tutar, tip, oran):
-        if tip == "Brüt": return tutar
-        sabit = sabitler.get(oran, 5865.80)
-        return (tutar - sabit) / oran
 
     st.markdown("### 🎁 Sosyal Yardımlar")
     
-    # Satır 1
     col_s1, col_s2 = st.columns(2)
     with col_s1:
         with st.container(border=True):
             st.write("🍞 **Gıda Yardımı (Aylık)**")
-            g_tip = st.radio("Tip", ["Net", "Brüt"], horizontal=True, key="gida_t")
-            g_val = st.number_input("Tutar", 0.0, key="gida_v")
+            g_tip = st.radio("Gıda Tip", ["Net", "Brüt"], horizontal=True)
+            g_val = st.number_input("Gıda Tutarı", 0.0)
             gida = brutlestir(g_val, g_tip, secilen_oran)
     with col_s2:
         with st.container(border=True):
             st.write("🔥 **Yakacak Yardımı (Aylık)**")
-            y_tip = st.radio("Tip", ["Net", "Brüt"], horizontal=True, key="yaka_t")
-            y_val = st.number_input("Tutar", 0.0, key="yaka_v")
+            y_tip = st.radio("Yakacak Tip", ["Net", "Brüt"], horizontal=True)
+            y_val = st.number_input("Yakacak Tutarı", 0.0)
             yakacak = brutlestir(y_val, y_tip, secilen_oran)
 
-    # Satır 2
     col_s3, col_s4, col_s5 = st.columns(3)
     with col_s3:
         with st.container(border=True):
             st.write("👕 **Giyim (Yıllık)**")
-            giy_tip = st.radio("Tip", ["Net", "Brüt"], horizontal=True, key="giy_t")
-            giyim = brutlestir(st.number_input("Tutar", 0.0, key="giy_v"), giy_tip, secilen_oran)
+            giy_tip = st.radio("Giyim Tip", ["Net", "Brüt"], horizontal=True)
+            giyim = brutlestir(st.number_input("Giyim Tutar", 0.0), giy_tip, secilen_oran)
     with col_s4:
         with st.container(border=True):
             st.write("👟 **Ayakkabı (Yıllık)**")
-            ayk_tip = st.radio("Tip", ["Net", "Brüt"], horizontal=True, key="ayk_t")
-            ayakkabi = brutlestir(st.number_input("Tutar", 0.0, key="ayk_v"), ayk_tip, secilen_oran)
+            ayk_tip = st.radio("Ayakkabı Tip", ["Net", "Brüt"], horizontal=True)
+            ayakkabi = brutlestir(st.number_input("Ayakkabı Tutar", 0.0), ayk_tip, secilen_oran)
     with col_s5:
         with st.container(border=True):
             st.write("🎁 **Yılbaşı (Yıllık)**")
-            yil_tip = st.radio("Tip", ["Net", "Brüt"], horizontal=True, key="yil_t")
-            yilbasi = brutlestir(st.number_input("Tutar", 0.0, key="yil_v"), yil_tip, secilen_oran)
+            yil_tip = st.radio("Yılbaşı Tip", ["Net", "Brüt"], horizontal=True)
+            yilbasi = brutlestir(st.number_input("Yılbaşı Tutar", 0.0), yil_tip, secilen_oran)
 
-    # Satır 3
     col_s6, col_s7, col_s8 = st.columns(3)
     with col_s6:
         with st.container(border=True):
             st.write("📅 **İzin Parası**")
-            iz_m = st.selectbox("Mod", ["Maktu", "Katsayı (Gün)"], key="iz_m")
-            iz_t = st.radio("Tip", ["Net", "Brüt"], horizontal=True, key="iz_t")
-            iz_v = st.number_input("Değer", 0.0, key="iz_v")
-            # Değişkenleri burada doğrudan tanımla, hesaplamada kullan
-            izin_val, izin_mod, izin_tip = iz_v, iz_m, iz_t
-            ay_izin = brutlestir(calc_hybrid(izin_val, izin_mod, g_brut), izin_tip, secilen_oran) / 12
+            iz_m = st.selectbox("İzin Mod", ["Maktu", "Katsayı (Gün)"])
+            iz_t = st.radio("İzin Tip", ["Net", "Brüt"], horizontal=True)
+            iz_v = st.number_input("İzin Değer", 0.0)
+            ay_izin = brutlestir(calc_hybrid(iz_v, iz_m, g_brut), iz_t, secilen_oran) / 12
     with col_s7:
         with st.container(border=True):
             st.write("🎉 **Bayram Yardımı**")
-            ba_m = st.selectbox("Mod", ["Maktu", "Katsayı (Gün)"], key="ba_m")
-            ba_t = st.radio("Tip", ["Net", "Brüt"], horizontal=True, key="ba_t")
-            ba_v = st.number_input("Değer", 0.0, key="ba_v")
+            ba_m = st.selectbox("Bayram Mod", ["Maktu", "Katsayı (Gün)"])
+            ba_t = st.radio("Bayram Tip", ["Net", "Brüt"], horizontal=True)
+            ba_v = st.number_input("Bayram Değer", 0.0)
             ay_bayram = brutlestir(calc_hybrid(ba_v, ba_m, g_brut), ba_t, secilen_oran) / 12
     with col_s8:
         with st.container(border=True):
             st.write("🏆 **Prim Ödemesi**")
-            pr_m = st.selectbox("Mod", ["Maktu", "Katsayı (Gün)", "Yüzde (%)"], key="pr_m")
-            pr_t = st.radio("Tip", ["Net", "Brüt"], horizontal=True, key="pr_t")
-            pr_v = st.number_input("Değer", 0.0, key="pr_v")
+            pr_m = st.selectbox("Prim Mod", ["Maktu", "Katsayı (Gün)", "Yüzde (%)"])
+            pr_t = st.radio("Prim Tip", ["Net", "Brüt"], horizontal=True)
+            pr_v = st.number_input("Prim Değer", 0.0)
             ay_prim = brutlestir(calc_hybrid(pr_v, pr_m, g_brut), pr_t, secilen_oran)
 
-    # İkramiye (Ayrı Kutu)
     with st.container(border=True):
         ikramiye = st.number_input("💰 Yıllık Toplam İkramiye Günü", value=0)
         ay_ikramiye = (g_brut * ikramiye) / 12
 
-    # Aile & Çocuk Yardımı (Kutu içi)
     with st.container(border=True):
         st.write("👨‍👩‍👧‍👦 **Aile & Çocuk Yardımı**")
         col_ac1, col_ac2 = st.columns(2)
@@ -205,84 +185,56 @@ with tab1:
             yasal_cocuk_tik = st.checkbox("657 Çocuk Yardımı")
             muafiyet_cocuk_tik = st.checkbox("Muafiyet Çocuk")
             maktu_cocuk_birim = st.number_input("Maktu Çocuk (Birim)", 0.0)
-            
-    # ... (Geri kalan Vardiya/Gece/Özel Ek ve Hesaplamalar aynen devam eder)
+
     st.divider()
     st.markdown("### ⚡ Özel Ödemeler (Vardiya, Gece ve Ek)")
     v1, v2, v3 = st.columns(3)
-    
     with v1:
         with st.container(border=True):
             st.write("🔄 **Vardiya Zammı**")
-            v_tip = st.selectbox("Hesaplama Türü", ["Sabit", "Fiili (195/225)"])
+            v_hesap_tipi = st.selectbox("Hesaplama Türü", ["Sabit", "Fiili (195/225)"], key="v_h")
             v_mod = st.selectbox("Birim", ["Maktu", "Yüzde (%)"], key="v_m")
             v_val = st.number_input("Miktar", 0.0, key="v_v")
-            
     with v2:
         with st.container(border=True):
             st.write("🌙 **Gece Zammı**")
-            g_tip = st.selectbox("Hesaplama Türü", ["Sabit", "Fiili (80/225)"])
+            g_hesap_tipi = st.selectbox("Hesaplama Türü", ["Sabit", "Fiili (80/225)"], key="g_h")
             g_mod = st.selectbox("Birim", ["Maktu", "Yüzde (%)"], key="g_m")
             g_val = st.number_input("Miktar", 0.0, key="g_v")
-
     with v3:
         with st.container(border=True):
             st.write("➕ **Ücrete Bağlı Ek Özel**")
-            ek_ozel_tip = st.selectbox("Baz Alınacak Ücret", ["Günlük Ücret", "Aylık Ücret"])
+            ek_ozel_tip = st.selectbox("Baz Alınacak Ücret", ["Günlük Ücret", "Aylık Ücret"], key="eo_t")
             ek_ozel_mod = st.selectbox("Birim", ["Katsayı", "Yüzde (%)"], key="eo_m")
             ek_ozel_val = st.number_input("Miktar", 0.0, key="eo_v")
 
-    # --- HESAPLAMALAR ---
-    
-    # Varsayılan değer: 2 çocuk (TİS standartı)
-    sabit_cocuk_sayisi = 2 
-
+    # --- FİNAL HESAPLAMALAR ---
     ay_ek1 = calc_hybrid(ek_val, ek_mod, g_brut) if ek_per == "Aylık" else calc_hybrid(ek_val, ek_mod, g_brut) / 12
     ay_ek2 = calc_hybrid(ek2_val, ek2_mod, g_brut) if ek2_per == "Aylık" else calc_hybrid(ek2_val, ek2_mod, g_brut) / 12
     
-    # Yeni Ek Özel Ödeme Hesaplaması
+    # Aile & Çocuk
+    sabit_cocuk_sayisi = 2
+    yasal_aile_tutar = aile_yasal if yasal_aile else 0
+    muafiyet_aile_tutar = muafiyet_aile if muafiyet_aile_tik else 0
+    yasal_cocuk_tutar = (cocuk_6_ustu_yasal * 2 * sabit_cocuk_sayisi) if yasal_cocuk_tik else 0
+    muafiyet_cocuk_tutar = muafiyet_cocuk if muafiyet_cocuk_tik else 0
+    maktu_cocuk_toplam = (maktu_cocuk_birim * sabit_cocuk_sayisi)
+    ay_aile_cocuk_paketi = (yasal_aile_tutar + muafiyet_aile_tutar + maktu_aile + yasal_cocuk_tutar + muafiyet_cocuk_tutar + maktu_cocuk_toplam)
+
+    # Vardiya & Gece
+    v_tutar = calc_hybrid(v_val, v_mod, g_brut)
+    if v_hesap_tipi == "Fiili (195/225)": v_tutar = (v_tutar * 195) / 225
+    g_tutar = calc_hybrid(g_val, g_mod, g_brut)
+    if g_hesap_tipi == "Fiili (80/225)": g_tutar = (g_tutar * 80) / 225
+
+    # Ek Özel
     if ek_ozel_tip == "Günlük Ücret":
         ay_ek_ozel = g_brut * (ek_ozel_val if ek_ozel_mod == "Katsayı" else ek_ozel_val / 100)
     else:
         ay_ek_ozel = a_brut * (ek_ozel_val if ek_ozel_mod == "Katsayı" else ek_ozel_val / 100)
 
-    ay_izin = calc_hybrid(izin_val, izin_mod, g_brut) / 12
-    ay_bayram = calc_hybrid(bayram_val, bayram_mod, g_brut) / 12
-    ay_prim = calc_hybrid(prim_val, prim_mod, g_brut)
-
-    # --- YENİ AİLE & ÇOCUK HESAPLAMA MANTIĞI ---
-    # Yasal Aile Yardımı
-    yasal_aile_tutar = aile_yasal if yasal_aile else 0
-    muafiyet_aile_tutar = muafiyet_aile if muafiyet_aile_tik else 0
-    
-    # Yasal Çocuk Yardımı: (Yasal 6+ değerinin 2 katı) * 2 Çocuk
-    yasal_cocuk_tutar = (cocuk_6_ustu_yasal * 2 * sabit_cocuk_sayisi) if yasal_cocuk_tik else 0
-    muafiyet_cocuk_tutar = muafiyet_cocuk if muafiyet_cocuk_tik else 0
-    
-    
-    # Maktu Çocuk Yardımı: Birim * 2 Çocuk
-    maktu_cocuk_toplam = (maktu_cocuk_birim * sabit_cocuk_sayisi)
-    
-    # Toplam Aile/Çocuk Paketi
-    ay_aile_cocuk_paketi = (yasal_aile_tutar + muafiyet_aile_tutar + 
-                            maktu_aile + yasal_cocuk_tutar + 
-                            muafiyet_cocuk_tutar + maktu_cocuk_toplam)
-    # ------------------------------------------
-    
-    # Vardiya ve Gece Hesaplama
-    v_tutar = calc_hybrid(v_val, v_mod, g_brut)
-    if v_tip == "Fiili (195/225)": v_tutar = (v_tutar * 195) / 225
-    
-    g_tutar = calc_hybrid(g_val, g_mod, g_brut)
-    if g_tip == "Fiili (80/225)": g_tutar = (g_tutar * 80) / 225
-
-    ay_ikramiye = (g_brut * ikramiye) / 12
-    
-    # Toplam Sosyal Paket
-    toplam_sosyal = (gida + yakacak + ay_izin + ay_bayram + ay_prim + 
-                     (giyim + ayakkabi + yilbasi) / 12 + ay_ikramiye + 
-                     ay_aile_cocuk_paketi + v_tutar + g_tutar + ay_ek_ozel)
-    
+    # Toplamlar
+    toplam_sosyal = (gida + yakacak + ay_izin + ay_bayram + ay_prim + (giyim + ayakkabi + yilbasi) / 12 + ay_ikramiye + ay_aile_cocuk_paketi + v_tutar + g_tutar + ay_ek_ozel)
     t_maliyet = a_brut + ay_ek1 + ay_ek2 + toplam_sosyal
 
     # --- SONUÇLAR ---
@@ -298,7 +250,7 @@ with tab1:
     })
     st.table(detay_df)
 
-    # --- KAYIT ---
+    # --- KAYIT VE İNDİRME ---
     col_btn1, col_btn2 = st.columns(2)
     with col_btn1:
         if st.button("💾 Veritabanına Kaydet"):
@@ -314,7 +266,6 @@ with tab1:
                 }, scope)
                 client = gspread.authorize(creds)
                 sheet = client.open_by_key("1kb6ceU5NjBNl1PB3vCspw90s8lYRVU7XVbMt97tfEbg").sheet1
-                
                 sheet.append_row([
                     datetime.now().strftime("%d/%m/%Y %H:%M"),
                     st.session_state["active_user"], isyeri_adi, ", ".join(subeler),
