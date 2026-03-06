@@ -54,9 +54,13 @@ with st.sidebar:
                             format_func=lambda x: oran_etiketleri[x], index=1)
     
     st.subheader("⚖️ Yasal Yardımlar (Aylık)")
-    aile_yasal = st.number_input("Yasal Aile Yardımı", value=3154.63)
-    cocuk_0_6_yasal = st.number_input("Yasal Çocuk (0-6)", value=693.94)
-    cocuk_6_ustu_yasal = st.number_input("Yasal Çocuk (6+)", value=346.97)
+    aile_yasal = st.number_input("657 S.K. Aile Yardımı", value=3154.63)
+    cocuk_0_6_yasal = st.number_input("657 S.K. Çocuk (0-6)", value=693.94)
+    cocuk_6_ustu_yasal = st.number_input("657 S.K. Çocuk (6+)", value=346.97)
+    muafiyet_aile = asgari_ucret_limit * 0.10
+    muafiyet_cocuk = (asgari_ucret_limit * 0.02) * 2 # 2 çocuk varsayılanı ile
+    
+    st.info(f"Otomatik Muafiyetler:\n- Aile: {muafiyet_aile:,.2f} TL\n- Çocuk (2): {muafiyet_cocuk:,.2f} TL")
 
 # --- SEKME YAPISI ---
 tab1, tab2 = st.tabs(["💰 Ücret ve Sosyal Ödemeler", "🏢 İşyeri Bilgileri"])
@@ -132,13 +136,15 @@ with tab1:
             st.write("👨‍👩‍👧‍👦 **Aile & Çocuk Yardımı**")
             
             # Aile Yardımı Bölümü
-            yasal_aile = st.checkbox("Yasal Aile Yardımı Uygula")
+            yasal_aile = st.checkbox("657 S.K. Aile Yardımı Uygula")
+            muafiyet_aile_tik = st.checkbox("Muafiyet Aile Yardımı Uygula") # YENİ
             maktu_aile = st.number_input("Maktu Aile Yardımı", 0.0, help="Sendika tarafından kazanılan sabit tutar")
             
             st.divider()
             
             # Çocuk Yardımı Bölümü
-            yasal_cocuk_tik = st.checkbox("Yasal Çocuk Zammı Uygula", help="Yasal 6+ yaş tutarının 2 katı (Her çocuk için)")
+            yasal_cocuk_tik = st.checkbox("657 S.K. Çocuk Zammı Uygula", help="657 S.K. 6+ yaş tutarının 2 katı (Her çocuk için)")
+            muafiyet_cocuk_tik = st.checkbox("Muafiyet Çocuk Yardımı Uygula") # YENİ
             maktu_cocuk_birim = st.number_input("Maktu Çocuk Yardımı (Birim)", 0.0, help="Çocuk başına maktu ödeme tutarı")
     st.divider()
     st.markdown("### ⚡ Özel Ödemeler (Vardiya, Gece ve Ek)")
@@ -186,15 +192,20 @@ with tab1:
     # --- YENİ AİLE & ÇOCUK HESAPLAMA MANTIĞI ---
     # Yasal Aile Yardımı
     yasal_aile_tutar = aile_yasal if yasal_aile else 0
+    muafiyet_aile_tutar = muafiyet_aile if muafiyet_aile_tik else 0
     
     # Yasal Çocuk Yardımı: (Yasal 6+ değerinin 2 katı) * 2 Çocuk
     yasal_cocuk_tutar = (cocuk_6_ustu_yasal * 2 * sabit_cocuk_sayisi) if yasal_cocuk_tik else 0
+    muafiyet_cocuk_tutar = muafiyet_cocuk if muafiyet_cocuk_tik else 0
+    
     
     # Maktu Çocuk Yardımı: Birim * 2 Çocuk
     maktu_cocuk_toplam = (maktu_cocuk_birim * sabit_cocuk_sayisi)
     
     # Toplam Aile/Çocuk Paketi
-    ay_aile_cocuk_paketi = yasal_aile_tutar + maktu_aile + yasal_cocuk_tutar + maktu_cocuk_toplam
+    ay_aile_cocuk_paketi = (yasal_aile_tutar + muafiyet_aile_tutar + 
+                            maktu_aile + yasal_cocuk_tutar + 
+                            muafiyet_cocuk_tutar + maktu_cocuk_toplam)
     # ------------------------------------------
     
     # Vardiya ve Gece Hesaplama
