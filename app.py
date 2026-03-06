@@ -94,7 +94,7 @@ with tab1:
         ek_val = st.number_input("Değer", value=0.0, key="ek1_val")
         ek_per = st.selectbox("Periyot", ["Aylık", "Yıllık"], key="ek1_per")
     with c3:
-        st.info("Ek Ödeme 2 (Yeni)")
+        st.info("Ek Ödeme 2")
         ek2_mod = st.selectbox("Hesaplama Modu", ["Maktu", "Katsayı (Gün)", "Yüzde (%)"], key="ek2_mod")
         ek2_val = st.number_input("Değer", value=0.0, key="ek2_val")
         ek2_per = st.selectbox("Periyot", ["Aylık", "Yıllık"], key="ek2_per")
@@ -110,48 +110,89 @@ with tab1:
         elif mode == "Yüzde (%)": return daily_base * 30 * (val / 100)
         return 0
 
-    st.markdown("### 🎁 Sosyal Yardımlar")
-    y1, y2, y3 = st.columns(3)
-    
-    with y1:
-        gida = st.number_input("Gıda (Aylık/Brüt)", 0.0)
-        yakacak = st.number_input("Yakacak (Aylık/Brüt)", 0.0)
-        giyim = st.number_input("Giyim Yardımı (Yıllık)", 0.0)
-        ayakkabi = st.number_input("Ayakkabı (Yıllık)", 0.0)
-        yilbasi = st.number_input("Yılbaşı Parası (Yıllık)", 0.0)
-        ikramiye = st.number_input("İkramiye (Yıllık Toplam Gün)", 0)
+    def brutlestir(tutar, tip, oran):
+        if tip == "Brüt": return tutar
+        sabit = sabitler.get(oran, 5865.80)
+        return (tutar - sabit) / oran
 
-    with y2:
+    st.markdown("### 🎁 Sosyal Yardımlar")
+    
+    # Satır 1
+    col_s1, col_s2 = st.columns(2)
+    with col_s1:
+        with st.container(border=True):
+            st.write("🍞 **Gıda Yardımı (Aylık)**")
+            g_tip = st.radio("Tip", ["Net", "Brüt"], horizontal=True, key="gida_t")
+            g_val = st.number_input("Tutar", 0.0, key="gida_v")
+            gida = brutlestir(g_val, g_tip, secilen_oran)
+    with col_s2:
+        with st.container(border=True):
+            st.write("🔥 **Yakacak Yardımı (Aylık)**")
+            y_tip = st.radio("Tip", ["Net", "Brüt"], horizontal=True, key="yaka_t")
+            y_val = st.number_input("Tutar", 0.0, key="yaka_v")
+            yakacak = brutlestir(y_val, y_tip, secilen_oran)
+
+    # Satır 2
+    col_s3, col_s4, col_s5 = st.columns(3)
+    with col_s3:
+        with st.container(border=True):
+            st.write("👕 **Giyim (Yıllık)**")
+            giy_tip = st.radio("Tip", ["Net", "Brüt"], horizontal=True, key="giy_t")
+            giyim = brutlestir(st.number_input("Tutar", 0.0, key="giy_v"), giy_tip, secilen_oran)
+    with col_s4:
+        with st.container(border=True):
+            st.write("👟 **Ayakkabı (Yıllık)**")
+            ayk_tip = st.radio("Tip", ["Net", "Brüt"], horizontal=True, key="ayk_t")
+            ayakkabi = brutlestir(st.number_input("Tutar", 0.0, key="ayk_v"), ayk_tip, secilen_oran)
+    with col_s5:
+        with st.container(border=True):
+            st.write("🎁 **Yılbaşı (Yıllık)**")
+            yil_tip = st.radio("Tip", ["Net", "Brüt"], horizontal=True, key="yil_t")
+            yilbasi = brutlestir(st.number_input("Tutar", 0.0, key="yil_v"), yil_tip, secilen_oran)
+
+    # Satır 3
+    col_s6, col_s7, col_s8 = st.columns(3)
+    with col_s6:
         with st.container(border=True):
             st.write("📅 **İzin Parası**")
-            izin_mod = st.selectbox("Tipi", ["Maktu", "Katsayı (Gün)"], key="iz_m")
-            izin_val = st.number_input("Değeri", 0.0, key="iz_v")
-        
+            iz_m = st.selectbox("Mod", ["Maktu", "Katsayı (Gün)"], key="iz_m")
+            iz_t = st.radio("Tip", ["Net", "Brüt"], horizontal=True, key="iz_t")
+            iz_v = st.number_input("Değer", 0.0, key="iz_v")
+            ay_izin = brutlestir(calc_hybrid(iz_v, iz_m, g_brut), iz_t, secilen_oran) / 12
+    with col_s7:
         with st.container(border=True):
             st.write("🎉 **Bayram Yardımı**")
-            bayram_mod = st.selectbox("Tipi", ["Maktu", "Katsayı (Gün)"], key="ba_m")
-            bayram_val = st.number_input("Değeri (Yıllık Toplam)", 0.0, key="ba_v")
-
-    with y3:
+            ba_m = st.selectbox("Mod", ["Maktu", "Katsayı (Gün)"], key="ba_m")
+            ba_t = st.radio("Tip", ["Net", "Brüt"], horizontal=True, key="ba_t")
+            ba_v = st.number_input("Değer", 0.0, key="ba_v")
+            ay_bayram = brutlestir(calc_hybrid(ba_v, ba_m, g_brut), ba_t, secilen_oran) / 12
+    with col_s8:
         with st.container(border=True):
             st.write("🏆 **Prim Ödemesi**")
-            prim_mod = st.selectbox("Tipi", ["Maktu", "Katsayı (Gün)", "Yüzde (%)"], key="pr_m")
-            prim_val = st.number_input("Değeri", 0.0, key="pr_v")
-        
-        with st.container(border=True):
-            st.write("👨‍👩‍👧‍👦 **Aile & Çocuk Yardımı**")
+            pr_m = st.selectbox("Mod", ["Maktu", "Katsayı (Gün)", "Yüzde (%)"], key="pr_m")
+            pr_t = st.radio("Tip", ["Net", "Brüt"], horizontal=True, key="pr_t")
+            pr_v = st.number_input("Değer", 0.0, key="pr_v")
+            ay_prim = brutlestir(calc_hybrid(pr_v, pr_m, g_brut), pr_t, secilen_oran)
+
+    # İkramiye (Ayrı Kutu)
+    with st.container(border=True):
+        ikramiye = st.number_input("💰 Yıllık Toplam İkramiye Günü", value=0)
+        ay_ikramiye = (g_brut * ikramiye) / 12
+
+    # Aile & Çocuk Yardımı (Kutu içi)
+    with st.container(border=True):
+        st.write("👨‍👩‍👧‍👦 **Aile & Çocuk Yardımı**")
+        col_ac1, col_ac2 = st.columns(2)
+        with col_ac1:
+            yasal_aile = st.checkbox("657 Aile Yardımı")
+            muafiyet_aile_tik = st.checkbox("Muafiyet Aile")
+            maktu_aile = st.number_input("Maktu Aile", 0.0)
+        with col_ac2:
+            yasal_cocuk_tik = st.checkbox("657 Çocuk Yardımı")
+            muafiyet_cocuk_tik = st.checkbox("Muafiyet Çocuk")
+            maktu_cocuk_birim = st.number_input("Maktu Çocuk (Birim)", 0.0)
             
-            # Aile Yardımı Bölümü
-            yasal_aile = st.checkbox("657 S.K. Aile Yardımı Uygula")
-            muafiyet_aile_tik = st.checkbox("Muafiyet Aile Yardımı Uygula") # YENİ
-            maktu_aile = st.number_input("Maktu Aile Yardımı", 0.0, help="Sendika tarafından kazanılan sabit tutar")
-            
-            st.divider()
-            
-            # Çocuk Yardımı Bölümü
-            yasal_cocuk_tik = st.checkbox("657 S.K. Çocuk Zammı Uygula", help="657 S.K. 6+ yaş tutarının 2 katı (Her çocuk için)")
-            muafiyet_cocuk_tik = st.checkbox("Muafiyet Çocuk Yardımı Uygula") # YENİ
-            maktu_cocuk_birim = st.number_input("Maktu Çocuk Yardımı (Birim)", 0.0, help="Çocuk başına maktu ödeme tutarı")
+    # ... (Geri kalan Vardiya/Gece/Özel Ek ve Hesaplamalar aynen devam eder)
     st.divider()
     st.markdown("### ⚡ Özel Ödemeler (Vardiya, Gece ve Ek)")
     v1, v2, v3 = st.columns(3)
