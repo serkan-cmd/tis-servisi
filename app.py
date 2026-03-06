@@ -247,14 +247,14 @@ with tab1:
     col_s6, col_s7, col_s8 = st.columns(3)
     with col_s6:
         with st.container(border=True):
-            st.write("📅 **İzin Parası**")
+            st.write("📅 **İzin Parası (Yıllık)**")
             iz_m = st.selectbox("İzin Mod", ["Maktu", "Katsayı (Gün)"])
             iz_t = st.radio("İzin Tip", ["Net", "Brüt"], horizontal=True)
             iz_v = st.number_input("İzin Değer", 0.0)
             ay_izin = yardim_brutlestir(calc_hybrid(iz_v, iz_m, g_brut), iz_t, secilen_oran) / 12
     with col_s7:
         with st.container(border=True):
-            st.write("🎉 **Bayram Yardımı**")
+            st.write("🎉 **Bayram Yardımı (Yıllık)**")
             ba_m = st.selectbox("Bayram Mod", ["Maktu", "Katsayı (Gün)"])
             ba_t = st.radio("Bayram Tip", ["Net", "Brüt"], horizontal=True)
             ba_v = st.number_input("Bayram Değer", 0.0)
