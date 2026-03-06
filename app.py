@@ -129,14 +129,16 @@ with tab2:
         else:
             st.success("✅ Sözleşme süreci normal takviminde ilerliyor.")
         
-        # Süre Hesaplama ve Uyarı
-        sozlesme_suresi = (tis_bitis - tis_baslangic).days / 365
-        if sozlesme_suresi < 1,1:
+        # --- SÖZLEŞME SÜRESİ KONTROLÜ (DÜZELTİLMİŞ) ---
+        fark_gun = (tis_bitis - tis_baslangic).days
+        
+        if fark_gun < 365:
             st.warning("⚠️ TİS kanunen 1 yıldan az olamaz.")
-        elif sozlesme_suresi > 3:
+        elif fark_gun > 1095: # 3 yıl (365 * 3)
             st.error("❌ TİS kanunen 3 yıldan fazla olamaz.")
         else:
-            st.success(f"✅ Sözleşme Süresi: {sozlesme_suresi:.1f} Yıl")
+            yil_hesabi = round(fark_gun / 365, 1)
+            st.success(f"✅ Sözleşme Süresi: {yil_hesabi} Yıl")
     
     with col_is2:
         toplam_calisan = st.number_input("Toplam Çalışan Sayısı", value=0)
