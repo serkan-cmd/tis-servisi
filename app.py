@@ -292,9 +292,17 @@ with tab1:
                 client = gspread.authorize(creds)
                 sheet = client.open_by_key("1kb6ceU5NjBNl1PB3vCspw90s8lYRVU7XVbMt97tfEbg").sheet1
                 sheet.append_row([
-                    datetime.now().strftime("%d/%m/%Y %H:%M"),
-                    st.session_state["active_user"], isyeri_adi, ", ".join(subeler),
-                    uye_sayisi, grev_yasagi, f"{a_brut:.2f}", f"{toplam_sosyal:.2f}", f"{t_maliyet:.2f}"
+                    datetime.now().strftime("%d/%m/%Y %H:%M"), # İşlem zamanı
+                    st.session_state["active_user"],           # Uzman
+                    isyeri_adi,                                # İşyeri
+                    ", ".join(subeler),                        # Şubeler
+                    tis_baslangic.strftime("%d/%m/%Y"),        # TİS Başlangıç (YENİ)
+                    tis_bitis.strftime("%d/%m/%Y"),            # TİS Bitiş (YENİ)
+                    uye_sayisi, 
+                    grev_yasagi, 
+                    f"{a_brut:.2f}", 
+                    f"{toplam_sosyal:.2f}", 
+                    f"{t_maliyet:.2f}"
                 ])
                 st.success("✅ Kaydedildi!")
                 st.balloons()
