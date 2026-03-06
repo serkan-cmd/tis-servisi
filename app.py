@@ -38,7 +38,7 @@ def check_password():
 
 if not check_password(): st.stop()
 
-# --- SIDEBAR ---
+# --- SIDEBAR (Güncellenmiş) ---
 with st.sidebar:
     st.markdown(f"### 👤 Uzman: **{st.session_state['active_user']}**")
     if st.button("Güvenli Çıkış"):
@@ -46,6 +46,10 @@ with st.sidebar:
         st.rerun()
     st.divider()
     st.header("⚙️ Genel Ayarlar")
+    
+    # Asgari ücreti en üste alıyoruz ki aşağıda hesaplamada kullanabilelim
+    asgari_ucret_limit = st.number_input("Güncel Asgari Ücret (Brüt)", value=33030.00)
+    
     oran_etiketleri = {
         0.71491: "%15 Vergi Dilimi", 0.67241: "%20 Vergi Dilimi",
         0.61291: "%27 Vergi Dilimi", 0.54491: "%35 Vergi Dilimi"
@@ -57,8 +61,10 @@ with st.sidebar:
     aile_yasal = st.number_input("657 S.K. Aile Yardımı", value=3154.63)
     cocuk_0_6_yasal = st.number_input("657 S.K. Çocuk (0-6)", value=693.94)
     cocuk_6_ustu_yasal = st.number_input("657 S.K. Çocuk (6+)", value=346.97)
+    
+    # Muafiyet Hesapları
     muafiyet_aile = asgari_ucret_limit * 0.10
-    muafiyet_cocuk = (asgari_ucret_limit * 0.02) * 2 # 2 çocuk varsayılanı ile
+    muafiyet_cocuk = (asgari_ucret_limit * 0.02) * 2 
     
     st.info(f"Otomatik Muafiyetler:\n- Aile: {muafiyet_aile:,.2f} TL\n- Çocuk (2): {muafiyet_cocuk:,.2f} TL")
 
