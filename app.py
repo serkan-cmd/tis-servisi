@@ -211,25 +211,7 @@ with tab1:
     a_brut = maas_brutlestir(u_tutar, u_tipi, secilen_oran) 
     g_brut = a_brut / 30
     
-    # --- ÜCRETE BAĞLI EK ÖDEMELER (Denge Ödentisi) ---
-    st.markdown("### 📈 Ücrete Bağlı Ek Ödemeler (Denge Ödentisi)")
-    with st.container(border=True):
-        col_d1, col_d2 = st.columns(2)
-        with col_d1:
-            denge_aktif = st.checkbox("Denge Ödentisi Uygula")
-            denge_oran = st.number_input("Denge Ödentisi Oranı (%)", value=11.0) / 100
-        with col_d2:
-            st.write("Hesaplanacak Baz:")
-            st.caption("Ücret + İkramiye + Gece Z. + Vardiya Z.")
-            
-        if denge_aktif:
-            # Hesaplama: (Ücret + İkramiye + Gece Zammı + Vardiya Zammı) * Oran
-            baz_tutar = a_brut + ay_ikramiye + g_tutar + v_tutar
-            ay_denge = baz_tutar * denge_oran
-            st.metric("Hesaplanan Denge Ödentisi", f"{ay_denge:,.2f} TL")
-        else:
-            ay_denge = 0.0
-
+    
     st.markdown("### 🎁 Sosyal Yardımlar")
     
     col_s1, col_s2 = st.columns(2)
@@ -323,6 +305,25 @@ with tab1:
             ek_ozel_tip = st.selectbox("Baz Alınacak Ücret", ["Günlük Ücret", "Aylık Ücret"], key="eo_t")
             ek_ozel_mod = st.selectbox("Birim", ["Katsayı", "Yüzde (%)"], key="eo_m")
             ek_ozel_val = st.number_input("Miktar", 0.0, key="eo_v")
+
+    # --- ÜCRETE BAĞLI EK ÖDEMELER (Denge Ödentisi) ---
+    st.markdown("### 📈 Ücrete Bağlı Ek Ödemeler (Denge Ödentisi)")
+    with st.container(border=True):
+        col_d1, col_d2 = st.columns(2)
+        with col_d1:
+            denge_aktif = st.checkbox("Denge Ödentisi Uygula")
+            denge_oran = st.number_input("Denge Ödentisi Oranı (%)", value=11.0) / 100
+        with col_d2:
+            st.write("Hesaplanacak Baz:")
+            st.caption("Ücret + İkramiye + Gece Z. + Vardiya Z.")
+            
+        if denge_aktif:
+            # Hesaplama: (Ücret + İkramiye + Gece Zammı + Vardiya Zammı) * Oran
+            baz_tutar = a_brut + ay_ikramiye + g_tutar + v_tutar
+            ay_denge = baz_tutar * denge_oran
+            st.metric("Hesaplanan Denge Ödentisi", f"{ay_denge:,.2f} TL")
+        else:
+            ay_denge = 0.0
 
     # --- FİNAL HESAPLAMALAR ---
     ay_ek1 = calc_hybrid(ek_val, ek_mod, g_brut) if ek_per == "Aylık" else calc_hybrid(ek_val, ek_mod, g_brut) / 12
