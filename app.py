@@ -115,7 +115,7 @@ with tab1:
         ek2_per = st.selectbox("Periyot", ["Aylık", "Yıllık"], key="ek2_per")
 
     # Temel Maaş Hesaplama
-    a_brut = brutlestir(u_tutar, u_tipi, secilen_oran)
+    a_brut = maas_brutlestir(u_tutar, u_tipi, secilen_oran) 
     g_brut = a_brut / 30
 
     st.markdown("### 🎁 Sosyal Yardımlar")
