@@ -210,6 +210,25 @@ with tab1:
     # Temel Maaş Hesaplama
     a_brut = maas_brutlestir(u_tutar, u_tipi, secilen_oran) 
     g_brut = a_brut / 30
+    
+    # --- ÜCRETE BAĞLI EK ÖDEMELER (Denge Ödentisi) ---
+    st.markdown("### 📈 Ücrete Bağlı Ek Ödemeler (Denge Ödentisi)")
+    with st.container(border=True):
+        col_d1, col_d2 = st.columns(2)
+        with col_d1:
+            denge_aktif = st.checkbox("Denge Ödentisi Uygula")
+            denge_oran = st.number_input("Denge Ödentisi Oranı (%)", value=11.0) / 100
+        with col_d2:
+            st.write("Hesaplanacak Baz:")
+            st.caption("Ücret + İkramiye + Gece Z. + Vardiya Z.")
+            
+        if denge_aktif:
+            # Hesaplama: (Ücret + İkramiye + Gece Zammı + Vardiya Zammı) * Oran
+            baz_tutar = a_brut + ay_ikramiye + g_tutar + v_tutar
+            ay_denge = baz_tutar * denge_oran
+            st.metric("Hesaplanan Denge Ödentisi", f"{ay_denge:,.2f} TL")
+        else:
+            ay_denge = 0.0
 
     st.markdown("### 🎁 Sosyal Yardımlar")
     
@@ -331,7 +350,10 @@ with tab1:
         ay_ek_ozel = a_brut * (ek_ozel_val if ek_ozel_mod == "Katsayı" else ek_ozel_val / 100)
 
     # Toplamlar
-    toplam_sosyal = (gida + yakacak + ay_izin + ay_bayram + ay_prim + (giyim + ayakkabi + yilbasi) / 12 + ay_ikramiye + ay_aile_cocuk_paketi + v_tutar + g_tutar + ay_ek_ozel)
+    toplam_sosyal = (gida + yakacak + ay_izin + ay_bayram + ay_prim + 
+                     (giyim + ayakkabi + yilbasi) / 12 + 
+                     ay_ikramiye + ay_aile_cocuk_paketi + 
+                     v_tutar + g_tutar + ay_ek_ozel + ay_denge)
     t_maliyet = a_brut + ay_ek1 + ay_ek2 + toplam_sosyal
 
     # --- SONUÇLAR ---
