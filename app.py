@@ -131,8 +131,8 @@ with tab1:
     <style>
         /* border=True olan tüm kutuları hedefle */
         [data-testid="stVerticalBlock"] > [data-testid="stVerticalBlockBorderWrapper"] {
-            border-radius: 15px;
-            padding: 10px;
+           border-radius: 15px;
+           padding: 10px;
         }
     </style>
     """, unsafe_allow_html=True)
