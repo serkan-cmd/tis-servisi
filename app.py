@@ -68,6 +68,13 @@ with st.sidebar:
 
 # --- HESAPLAMA ARAÇLARI (GÜNCELLENDİ) ---
 
+def calc_hybrid(val, mode, daily_base):
+    """Maktu, Katsayı veya Yüzdeye göre brüt tutarı hesaplar"""
+    if mode == "Maktu": return val
+    elif mode == "Katsayı (Gün)": return daily_base * val
+    elif mode == "Yüzde (%)": return daily_base * 30 * (val / 100)
+    return 0
+
 def maas_brutlestir(tutar, tip, oran):
     """Ana ücret için istisnalı brütleştirme"""
     sabitler = {0.71491: 4462.03, 0.67241: 4788.45, 0.61291: 5865.80, 0.54491: 5865.80}
