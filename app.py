@@ -102,7 +102,7 @@ def verileri_yukle_ve_getir():
         sheet = client.open_by_key("1kb6ceU5NjBNl1PB3vCspw90s8lYRVU7XVbMt97tfEbg").sheet1
         
         # Tüm veriyi sözlük formatında al
-        data = sheet.get_all_records()
+        data = sheet.get_all_records(head=1)
         return pd.DataFrame(data)
     except Exception as e:
         st.error(f"Veritabanına bağlanılamadı: {e}")
