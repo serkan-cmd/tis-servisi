@@ -104,6 +104,22 @@ with tab2:
         st.subheader("📅 Sözleşme Dönemi")
         tis_baslangic = st.date_input("Yürürlük Başlangıç Tarihi", value=datetime.now())
         tis_bitis = st.date_input("Yürürlük Bitiş Tarihi", value=datetime.now().replace(year=datetime.now().year + 2))
+
+        # --- SÖZLEŞME İLERLEME DURUMU ---
+        st.divider()
+        st.subheader("📊 Sözleşme İlerleme Durumu")
+        
+        bugun = datetime.now().date()
+        toplam_sure = (tis_bitis - tis_baslangic).days
+        gecen_sure = (bugun - tis_baslangic).days
+        kalan_sure = (tis_bitis - bugun).days
+        
+        # Yüzdelik hesaplama
+        yuzde = min(max((gecen_sure / toplam_sure) * 100, 0), 100)
+        
+        st.write(f"**Geçen Süre:** {max(gecen_sure, 0)} Gün")
+        st.write(f"**Kalan Süre:** {max(kalan_sure, 0)} Gün")
+        st.progress(yuzde / 100)
         
         # Süre Hesaplama ve Uyarı
         sozlesme_suresi = (tis_bitis - tis_baslangic).days / 365
