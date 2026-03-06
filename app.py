@@ -275,41 +275,75 @@ with tab1:
     })
     st.table(detay_df)
 
-    # --- KAYIT VE İNDİRME ---
+    # --- KAYIT VE İNDİRME (GÜNCEL VERSİYON) ---
+    st.divider()
     col_btn1, col_btn2 = st.columns(2)
+    
     with col_btn1:
         if st.button("💾 Veritabanına Kaydet"):
             try:
                 scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
                 s = st.secrets["connections"]["gsheets"]
-                creds = ServiceAccountCredentials.from_json_keyfile_dict({
-                    "type": s["type"], "project_id": s["project_id"], "private_key_id": s["private_key_id"],
-                    "private_key": s["private_key"], "client_email": s["client_email"], "client_id": s["client_id"],
-                    "auth_uri": s["auth_uri"], "token_uri": s["token_uri"],
-                    "auth_provider_x509_cert_url": s["auth_provider_x509_cert_url"],
-                    "client_x509_cert_url": s["client_x509_cert_url"]
-                }, scope)
+                
+                # Kimlik bilgilerini doğrudan sözlükten alıyoruz
+                creds = ServiceAccountCredentials.from_json_keyfile_dict(dict(s), scope)
                 client = gspread.authorize(creds)
                 sheet = client.open_by_key("1kb6ceU5NjBNl1PB3vCspw90s8lYRVU7XVbMt97tfEbg").sheet1
-                sheet.append_row([
-                    datetime.now().strftime("%d/%m/%Y %H:%M"), # İşlem zamanı
-                    st.session_state["active_user"],           # Uzman
-                    isyeri_adi,                                # İşyeri
-                    ", ".join(subeler),                        # Şubeler
-                    tis_baslangic.strftime("%d/%m/%Y"),        # TİS Başlangıç (YENİ)
-                    tis_bitis.strftime("%d/%m/%Y"),            # TİS Bitiş (YENİ)
-                    uye_sayisi, 
-                    grev_yasagi, 
-                    f"{a_brut:.2f}", 
-                    f"{toplam_sosyal:.2f}", 
+                
+                # Google Sheets'e gidecek veri listesi (Sütun sırasına dikkat!)
+                kayit_row = [
+                    datetime.now().strftime("%d/%m/%Y %H:%M"),
+                    st.session_state["active_user"],
+                    isyeri_adi,
+                    ", ".join(subeler),
+                    tis_baslangic.strftime("%d/%m/%Y"), # Tarih 1
+                    tis_bitis.strftime("%d/%m/%Y"),     # Tarih 2
+                    uye_sayisi,
+                    grev_yasagi,
+                    f"{a_brut:.2f}",
+                    f"{toplam_sosyal:.2f}",
                     f"{t_maliyet:.2f}"
-                ])
-                st.success("✅ Kaydedildi!")
+                ]
+                
+                sheet.append_row(kayit_row)
+                st.success("✅ Veritabanına ve Google Sheets'e başarıyla kaydedildi!")
                 st.balloons()
-            except Exception as e: st.error(f"Hata: {e}")
+            except Exception as e: 
+                st.error(f"Kayıt Hatası: {e}")
 
     with col_btn2:
+        # Excel raporu için daha kapsamlı bir tablo oluşturuyoruz
+        rapor_verisi = {
+            "Parametre": [
+                "İşlem Tarihi", "Uzman", "İşyeri", "Şubeler", 
+                "TİS Başlangıç", "TİS Bitiş", "Üye Sayısı", 
+                "Grev Durumu", "Ana Maaş (Brüt)", "Sosyal Paket", "Toplam Maliyet"
+            ],
+            "Değer": [
+                datetime.now().strftime("%d/%m/%Y %H:%M"),
+                st.session_state["active_user"],
+                isyeri_adi,
+                ", ".join(subeler),
+                tis_baslangic.strftime("%d/%m/%Y"),
+                tis_bitis.strftime("%d/%m/%Y"),
+                uye_sayisi,
+                grev_yasagi,
+                f"{a_brut:,.2f} TL",
+                f"{toplam_sosyal:,.2f} TL",
+                f"{t_maliyet:,.2f} TL"
+            ]
+        }
+        rapor_df = pd.DataFrame(rapor_verisi)
+        
         output = io.BytesIO()
         with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
-            detay_df.to_excel(writer, index=False)
-        st.download_button("📥 Excel İndir", output.getvalue(), f"{isyeri_adi}_hesap.xlsx")
+            rapor_df.to_excel(writer, index=False, sheet_name='TİS_Detayli_Rapor')
+            # Excel formatlama (isteğe bağlı genişlik ayarı)
+            writer.sheets['TİS_Detayli_Rapor'].set_column('A:B', 25)
+            
+        st.download_button(
+            label="📥 Detaylı Excel Raporu İndir",
+            data=output.getvalue(),
+            file_name=f"{isyeri_adi}_TIS_Rapor_{datetime.now().strftime('%Y%m%d')}.xlsx",
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        )
