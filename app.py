@@ -137,20 +137,26 @@ with tab1:
     # Satır 1
     col_s1, col_s2 = st.columns(2)
     with col_s1:
-        # Renk dinamik olarak belirleniyor
-        kutu_rengi = get_hex_color(st.session_state.get("gida_v", 0), st.session_state.get("gida_t", "Net"))
-    
-        # HTML/CSS ile özel konteyner oluşturuyoruz
-        st.markdown(f"""
-        <div style="background-color: {kutu_rengi}; padding: 20px; border-radius: 10px; border: 1px solid #ddd;">
-            <h4 style="margin: 0;">🍞 Gıda Yardımı (Aylık)</h4>
-        </div>
-        """, unsafe_allow_html=True)
-    
-        # Elemanları kutunun altına veya içine (burada st.form veya kolon yapısıyla) yerleştirebilirsin
+        # 1. Renk Seçimi
         g_tip = st.radio("Tip", ["Net", "Brüt"], horizontal=True, key="gida_t")
         g_val = st.number_input("Tutar", 0.0, key="gida_v")
-        gida = brutlestir(g_val, g_tip, secilen_oran)
+    
+        renk = "#FFEBEE" # Varsayılan (Sıfır - Açık Kırmızı)
+        if g_val > 0:
+            renk = "#E8F5E9" if g_tip == "Net" else "#FFFDE7" # Net ise Yeşil, Brüt ise Sarı
+
+    # 2. HTML ile Tasarlanmış Kutulu Yapı
+    st.markdown(f"""
+    <div style="background-color: {renk}; padding: 15px; border-radius: 10px; border: 1px solid #e0e0e0;">
+        <p style="margin: 0; font-weight: bold;">🍞 Gıda Yardımı (Aylık)</p>
+        <div style="margin-top: 10px;">
+            {""} 
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    # 3. Hesaplama
+    gida = brutlestir(g_val, g_tip, secilen_oran)
     with col_s2:
         with st.container(border=True):
             st.write("🔥 **Yakacak Yardımı (Aylık)**")
