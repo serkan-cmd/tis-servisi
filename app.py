@@ -127,75 +127,73 @@ with tab1:
         sabit = sabitler.get(oran, 5865.80)
         return (tutar - sabit) / oran
 
-    # RENGİ BELİRLEYEN FONKSİYONU BURAYA EKLE:
-    def get_box_color(val, tip):
-        if val == 0:
-            return "#FFEBEE"  # Çok açık kırmızı/pembe (Sıfır durumu)
-        elif tip == "Net":
-            return "#E8F5E9"  # Çok açık yeşil (Net durumu)
-        else:
-            return "#FFFDE7"  # Çok açık sarı (Brüt durumu)
-
-    # --- RENGİ BELİRLEYEN FONKSİYON (Kodun en üstüne, fonksiyonların yanına ekleyin) ---
-    def get_box_color(val, tip):
-        if val == 0: return "#FFEBEE"
-        elif tip == "Net": return "#E8F5E9"
-        else: return "#FFFDE7"
-
     st.markdown("### 🎁 Sosyal Yardımlar")
+    
+    # Satır 1
     col_s1, col_s2 = st.columns(2)
     with col_s1:
-        g_val = st.number_input("Tutar", 0.0, key="gida_v")
-        g_tip = st.radio("Tip", ["Net", "Brüt"], horizontal=True, key="gida_t")
-        st.markdown(f'<div style="background-color: {get_box_color(g_val, g_tip)}; padding: 10px; border-radius: 5px; border: 1px solid #ddd;">🍞 <b>Gıda Yardımı (Aylık)</b></div>', unsafe_allow_html=True)
-        gida = brutlestir(g_val, g_tip, secilen_oran)
+        with st.container(border=True):
+            st.write("🍞 **Gıda Yardımı (Aylık)**")
+            g_tip = st.radio("Tip", ["Net", "Brüt"], horizontal=True, key="gida_t")
+            g_val = st.number_input("Tutar", 0.0, key="gida_v")
+            gida = brutlestir(g_val, g_tip, secilen_oran)
     with col_s2:
-        y_val = st.number_input("Tutar", 0.0, key="yaka_v")
-        y_tip = st.radio("Tip", ["Net", "Brüt"], horizontal=True, key="yaka_t")
-        st.markdown(f'<div style="background-color: {get_box_color(y_val, y_tip)}; padding: 10px; border-radius: 5px; border: 1px solid #ddd;">🔥 <b>Yakacak Yardımı (Aylık)</b></div>', unsafe_allow_html=True)
-        yakacak = brutlestir(y_val, y_tip, secilen_oran)
+        with st.container(border=True):
+            st.write("🔥 **Yakacak Yardımı (Aylık)**")
+            y_tip = st.radio("Tip", ["Net", "Brüt"], horizontal=True, key="yaka_t")
+            y_val = st.number_input("Tutar", 0.0, key="yaka_v")
+            yakacak = brutlestir(y_val, y_tip, secilen_oran)
 
+    # Satır 2
     col_s3, col_s4, col_s5 = st.columns(3)
     with col_s3:
-        giy_v = st.number_input("Tutar", 0.0, key="giy_v")
-        giy_t = st.radio("Tip", ["Net", "Brüt"], horizontal=True, key="giy_t")
-        st.markdown(f'<div style="background-color: {get_box_color(giy_v, giy_t)}; padding: 10px; border-radius: 5px; border: 1px solid #ddd;">👕 <b>Giyim (Yıllık)</b></div>', unsafe_allow_html=True)
-        giyim = brutlestir(giy_v, giy_t, secilen_oran)
+        with st.container(border=True):
+            st.write("👕 **Giyim (Yıllık)**")
+            giy_tip = st.radio("Tip", ["Net", "Brüt"], horizontal=True, key="giy_t")
+            giyim = brutlestir(st.number_input("Tutar", 0.0, key="giy_v"), giy_tip, secilen_oran)
     with col_s4:
-        ayk_v = st.number_input("Tutar", 0.0, key="ayk_v")
-        ayk_t = st.radio("Tip", ["Net", "Brüt"], horizontal=True, key="ayk_t")
-        st.markdown(f'<div style="background-color: {get_box_color(ayk_v, ayk_t)}; padding: 10px; border-radius: 5px; border: 1px solid #ddd;">👟 <b>Ayakkabı (Yıllık)</b></div>', unsafe_allow_html=True)
-        ayakkabi = brutlestir(ayk_v, ayk_t, secilen_oran)
+        with st.container(border=True):
+            st.write("👟 **Ayakkabı (Yıllık)**")
+            ayk_tip = st.radio("Tip", ["Net", "Brüt"], horizontal=True, key="ayk_t")
+            ayakkabi = brutlestir(st.number_input("Tutar", 0.0, key="ayk_v"), ayk_tip, secilen_oran)
     with col_s5:
-        yil_v = st.number_input("Tutar", 0.0, key="yil_v")
-        yil_t = st.radio("Tip", ["Net", "Brüt"], horizontal=True, key="yil_t")
-        st.markdown(f'<div style="background-color: {get_box_color(yil_v, yil_t)}; padding: 10px; border-radius: 5px; border: 1px solid #ddd;">🎁 <b>Yılbaşı (Yıllık)</b></div>', unsafe_allow_html=True)
-        yilbasi = brutlestir(yil_v, yil_t, secilen_oran)
+        with st.container(border=True):
+            st.write("🎁 **Yılbaşı (Yıllık)**")
+            yil_tip = st.radio("Tip", ["Net", "Brüt"], horizontal=True, key="yil_t")
+            yilbasi = brutlestir(st.number_input("Tutar", 0.0, key="yil_v"), yil_tip, secilen_oran)
 
+    # Satır 3
     col_s6, col_s7, col_s8 = st.columns(3)
     with col_s6:
-        iz_m = st.selectbox("Mod", ["Maktu", "Katsayı (Gün)"], key="iz_m")
-        iz_t = st.radio("Tip", ["Net", "Brüt"], horizontal=True, key="iz_t")
-        iz_v = st.number_input("Değer", 0.0, key="iz_v")
-        st.markdown(f'<div style="background-color: {get_box_color(iz_v, iz_t)}; padding: 10px; border-radius: 5px; border: 1px solid #ddd;">📅 <b>İzin Parası</b></div>', unsafe_allow_html=True)
-        ay_izin = brutlestir(calc_hybrid(iz_v, iz_m, g_brut), iz_t, secilen_oran) / 12
+        with st.container(border=True):
+            st.write("📅 **İzin Parası**")
+            iz_m = st.selectbox("Mod", ["Maktu", "Katsayı (Gün)"], key="iz_m")
+            iz_t = st.radio("Tip", ["Net", "Brüt"], horizontal=True, key="iz_t")
+            iz_v = st.number_input("Değer", 0.0, key="iz_v")
+            # Değişkenleri burada doğrudan tanımla, hesaplamada kullan
+            izin_val, izin_mod, izin_tip = iz_v, iz_m, iz_t
+            ay_izin = brutlestir(calc_hybrid(izin_val, izin_mod, g_brut), izin_tip, secilen_oran) / 12
     with col_s7:
-        ba_m = st.selectbox("Mod", ["Maktu", "Katsayı (Gün)"], key="ba_m")
-        ba_t = st.radio("Tip", ["Net", "Brüt"], horizontal=True, key="ba_t")
-        ba_v = st.number_input("Değer", 0.0, key="ba_v")
-        st.markdown(f'<div style="background-color: {get_box_color(ba_v, ba_t)}; padding: 10px; border-radius: 5px; border: 1px solid #ddd;">🎉 <b>Bayram Yardımı</b></div>', unsafe_allow_html=True)
-        ay_bayram = brutlestir(calc_hybrid(ba_v, ba_m, g_brut), ba_t, secilen_oran) / 12
+        with st.container(border=True):
+            st.write("🎉 **Bayram Yardımı**")
+            ba_m = st.selectbox("Mod", ["Maktu", "Katsayı (Gün)"], key="ba_m")
+            ba_t = st.radio("Tip", ["Net", "Brüt"], horizontal=True, key="ba_t")
+            ba_v = st.number_input("Değer", 0.0, key="ba_v")
+            ay_bayram = brutlestir(calc_hybrid(ba_v, ba_m, g_brut), ba_t, secilen_oran) / 12
     with col_s8:
-        pr_m = st.selectbox("Mod", ["Maktu", "Katsayı (Gün)", "Yüzde (%)"], key="pr_m")
-        pr_t = st.radio("Tip", ["Net", "Brüt"], horizontal=True, key="pr_t")
-        pr_v = st.number_input("Değer", 0.0, key="pr_v")
-        st.markdown(f'<div style="background-color: {get_box_color(pr_v, pr_t)}; padding: 10px; border-radius: 5px; border: 1px solid #ddd;">🏆 <b>Prim Ödemesi</b></div>', unsafe_allow_html=True)
-        ay_prim = brutlestir(calc_hybrid(pr_v, pr_m, g_brut), pr_t, secilen_oran)
+        with st.container(border=True):
+            st.write("🏆 **Prim Ödemesi**")
+            pr_m = st.selectbox("Mod", ["Maktu", "Katsayı (Gün)", "Yüzde (%)"], key="pr_m")
+            pr_t = st.radio("Tip", ["Net", "Brüt"], horizontal=True, key="pr_t")
+            pr_v = st.number_input("Değer", 0.0, key="pr_v")
+            ay_prim = brutlestir(calc_hybrid(pr_v, pr_m, g_brut), pr_t, secilen_oran)
 
+    # İkramiye (Ayrı Kutu)
     with st.container(border=True):
         ikramiye = st.number_input("💰 Yıllık Toplam İkramiye Günü", value=0)
         ay_ikramiye = (g_brut * ikramiye) / 12
 
+    # Aile & Çocuk Yardımı (Kutu içi)
     with st.container(border=True):
         st.write("👨‍👩‍👧‍👦 **Aile & Çocuk Yardımı**")
         col_ac1, col_ac2 = st.columns(2)
@@ -207,25 +205,32 @@ with tab1:
             yasal_cocuk_tik = st.checkbox("657 Çocuk Yardımı")
             muafiyet_cocuk_tik = st.checkbox("Muafiyet Çocuk")
             maktu_cocuk_birim = st.number_input("Maktu Çocuk (Birim)", 0.0)
-
+            
+    # ... (Geri kalan Vardiya/Gece/Özel Ek ve Hesaplamalar aynen devam eder)
     st.divider()
     st.markdown("### ⚡ Özel Ödemeler (Vardiya, Gece ve Ek)")
     v1, v2, v3 = st.columns(3)
+    
     with v1:
-        v_tip = st.selectbox("Hesaplama Türü", ["Sabit", "Fiili (195/225)"])
-        v_mod = st.selectbox("Birim", ["Maktu", "Yüzde (%)"], key="v_m")
-        v_val = st.number_input("Miktar", 0.0, key="v_v")
-        st.markdown(f'<div style="background-color: {get_box_color(v_val, "Brüt")}; padding: 10px; border-radius: 5px; border: 1px solid #ddd;">🔄 <b>Vardiya Zammı</b></div>', unsafe_allow_html=True)
+        with st.container(border=True):
+            st.write("🔄 **Vardiya Zammı**")
+            v_tip = st.selectbox("Hesaplama Türü", ["Sabit", "Fiili (195/225)"])
+            v_mod = st.selectbox("Birim", ["Maktu", "Yüzde (%)"], key="v_m")
+            v_val = st.number_input("Miktar", 0.0, key="v_v")
+            
     with v2:
-        g_tip = st.selectbox("Hesaplama Türü", ["Sabit", "Fiili (80/225)"])
-        g_mod = st.selectbox("Birim", ["Maktu", "Yüzde (%)"], key="g_m")
-        g_val = st.number_input("Miktar", 0.0, key="g_v")
-        st.markdown(f'<div style="background-color: {get_box_color(g_val, "Brüt")}; padding: 10px; border-radius: 5px; border: 1px solid #ddd;">🌙 <b>Gece Zammı</b></div>', unsafe_allow_html=True)
+        with st.container(border=True):
+            st.write("🌙 **Gece Zammı**")
+            g_tip = st.selectbox("Hesaplama Türü", ["Sabit", "Fiili (80/225)"])
+            g_mod = st.selectbox("Birim", ["Maktu", "Yüzde (%)"], key="g_m")
+            g_val = st.number_input("Miktar", 0.0, key="g_v")
+
     with v3:
-        ek_ozel_tip = st.selectbox("Baz Alınacak Ücret", ["Günlük Ücret", "Aylık Ücret"])
-        ek_ozel_mod = st.selectbox("Birim", ["Katsayı", "Yüzde (%)"], key="eo_m")
-        ek_ozel_val = st.number_input("Miktar", 0.0, key="eo_v")
-        st.markdown(f'<div style="background-color: {get_box_color(ek_ozel_val, "Brüt")}; padding: 10px; border-radius: 5px; border: 1px solid #ddd;">➕ <b>Ek Özel Ödeme</b></div>', unsafe_allow_html=True)
+        with st.container(border=True):
+            st.write("➕ **Ücrete Bağlı Ek Özel**")
+            ek_ozel_tip = st.selectbox("Baz Alınacak Ücret", ["Günlük Ücret", "Aylık Ücret"])
+            ek_ozel_mod = st.selectbox("Birim", ["Katsayı", "Yüzde (%)"], key="eo_m")
+            ek_ozel_val = st.number_input("Miktar", 0.0, key="eo_v")
 
     # --- HESAPLAMALAR ---
     
