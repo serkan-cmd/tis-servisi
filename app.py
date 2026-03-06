@@ -82,6 +82,9 @@ with tab2:
         uye_sayisi = st.number_input("Sendikalı Üye Sayısı", value=0)
         grev_yasagi = st.selectbox("Grev Yasağı Durumu", ["Grev Yasağı Yok", "Grev Yasağı Var"])
 
+    izin_val, izin_mod, izin_tip = 0.0, "Maktu", "Brüt"
+    bayram_val, bayram_mod, bayram_tip = 0.0, "Maktu", "Brüt"
+
 with tab1:
     st.header("💵 Ücret ve Ek Ödemeler")
     c1, c2, c3 = st.columns(3)
