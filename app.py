@@ -99,7 +99,7 @@ with tab2:
     with col_is1:
         isyeri_adi = st.text_input("İşyeri Tam Adı", placeholder="Örn: ABC Kimya A.Ş.")
         subeler = st.multiselect("Bağlı Olduğu Şubeler", ["Adana", "Adıyaman", "Ankara", "Bandırma", "Batman", "Bursa", "Ceyhan", "Çankırı", "Gebze", "İstanbul 1", "İstanbul 2", "İzmir", "Kırıkkale", "Kocaeli", "Mersin", "Trakya", "Aliağa"])
-        # --- YENİ: TARİH ALANLARI ---
+        
         st.divider()
         st.subheader("📅 Sözleşme Dönemi")
         tis_baslangic = st.date_input("Yürürlük Başlangıç Tarihi", value=datetime.now())
@@ -110,16 +110,24 @@ with tab2:
         st.subheader("📊 Sözleşme İlerleme Durumu")
         
         bugun = datetime.now().date()
-        toplam_sure = (tis_bitis - tis_baslangic).days
-        gecen_sure = (bugun - tis_baslangic).days
-        kalan_sure = (tis_bitis - bugun).days
+        toplam_sure_gun = (tis_bitis - tis_baslangic).days
+        # Hata buradaydı, kalan_sure_gun değişkenini burada tanımlıyoruz:
+        kalan_sure_gun = max((tis_bitis - bugun).days, 0)
         
-        # Yüzdelik hesaplama
-        yuzde = min(max((gecen_sure / toplam_sure) * 100, 0), 100)
-        
-        st.write(f"**Geçen Süre:** {max(gecen_sure, 0)} Gün")
-        st.write(f"**Kalan Süre:** {max(kalan_sure, 0)} Gün")
+        # İlerleme Çubuğu
+        yuzde = min(max(((toplam_sure_gun - kalan_sure_gun) / toplam_sure_gun) * 100, 0), 100)
         st.progress(yuzde / 100)
+        st.write(f"**Kalan Süre:** {kalan_sure_gun} Gün")
+
+        # --- AKILLI UYARILAR ---
+        if kalan_sure_gun <= 0:
+            st.error("❌ Sözleşme süresi dolmuştur!")
+        elif kalan_sure_gun <= 120:
+            st.error("🚨 YETKİ BAŞVURU SÜRESİ BAŞLADI!")
+        elif kalan_sure_gun <= 365:
+            st.warning("⚠️ Sözleşmenin son yılındasınız. Hazırlık sürecini başlatın.")
+        else:
+            st.success("✅ Sözleşme süreci normal takviminde ilerliyor.")
         
         # Süre Hesaplama ve Uyarı
         sozlesme_suresi = (tis_bitis - tis_baslangic).days / 365
@@ -129,6 +137,7 @@ with tab2:
             st.error("❌ TİS kanunen 3 yıldan fazla olamaz.")
         else:
             st.success(f"✅ Sözleşme Süresi: {sozlesme_suresi:.1f} Yıl")
+    
     with col_is2:
         toplam_calisan = st.number_input("Toplam Çalışan Sayısı", value=0)
         uye_sayisi = st.number_input("Sendikalı Üye Sayısı", value=0)
