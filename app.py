@@ -129,16 +129,25 @@ with tab2:
         else:
             st.success("✅ Sözleşme süreci normal takviminde ilerliyor.")
         
-        # --- SÖZLEŞME SÜRESİ KONTROLÜ (DÜZELTİLMİŞ) ---
-        fark_gun = (tis_bitis - tis_baslangic).days
+        # --- SÖZLEŞME SÜRESİ KONTROLÜ (KESİN ÇÖZÜM) ---
+        # Tarihleri .date() ile sabitleyerek saat farklarını devre dışı bırakıyoruz
+        bas_date = tis_baslangic if isinstance(tis_baslangic, datetime) else tis_baslangic
+        bit_date = tis_bitis if isinstance(tis_bitis, datetime) else tis_bitis
+        
+        # Eğer tarih bir datetime nesnesi ise .date() metodunu uygula
+        if hasattr(bas_date, 'date'): bas_date = bas_date.date()
+        if hasattr(bit_date, 'date'): bit_date = bit_date.date()
+        
+        # +1 gün ekleyerek süreyi tam gün bazlı hesapla (01.01 - 31.12 arası 365 gündür)
+        fark_gun = (bit_date - bas_date).days + 1
         
         if fark_gun < 365:
-            st.warning("⚠️ TİS kanunen 1 yıldan az olamaz.")
-        elif fark_gun > 1095: # 3 yıl (365 * 3)
+            st.warning(f"⚠️ TİS kanunen 1 yıldan az olamaz. (Tespit edilen: {fark_gun} gün)")
+        elif fark_gun > 1095: 
             st.error("❌ TİS kanunen 3 yıldan fazla olamaz.")
         else:
             yil_hesabi = round(fark_gun / 365, 1)
-            st.success(f"✅ Sözleşme Süresi: {yil_hesabi} Yıl")
+            st.success(f"✅ Sözleşme Süresi: {yil_hesabi} Yıl ({fark_gun} Gün)")
     
     with col_is2:
         toplam_calisan = st.number_input("Toplam Çalışan Sayısı", value=0)
