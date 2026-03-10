@@ -228,6 +228,77 @@ with tab2:
         for key in list(st.session_state.keys()):
             if key not in korunan:
                 del st.session_state[key]
+        # ss_ anahtarlarını varsayılan değerlere sıfırla
+        st.session_state["ss_isyeri_adi"] = ""
+        st.session_state["ss_subeler"] = []
+        st.session_state["ss_tis_bas"] = datetime.now().date()
+        st.session_state["ss_tis_bit"] = datetime.now().replace(year=datetime.now().year + 2).date()
+        st.session_state["ss_uye_sayisi"] = 0
+        st.session_state["ss_toplam_calisan"] = 0
+        st.session_state["ss_grev_yasagi"] = "Grev Yasağı Yok"
+        st.session_state["ss_u_tipi"] = "Net"
+        st.session_state["ss_u_tutar"] = 20000.0
+        st.session_state["ss_ek1_mod"] = "Maktu"
+        st.session_state["ss_ek1_val"] = 0.0
+        st.session_state["ss_ek1_per"] = "Aylık"
+        st.session_state["ss_ek2_mod"] = "Maktu"
+        st.session_state["ss_ek2_val"] = 0.0
+        st.session_state["ss_ek2_per"] = "Aylık"
+        st.session_state["ss_gida_tip"] = "Net"
+        st.session_state["ss_gida_val"] = 0.0
+        st.session_state["ss_yakacak_tip"] = "Net"
+        st.session_state["ss_yakacak_val"] = 0.0
+        st.session_state["ss_giyim_tip"] = "Net"
+        st.session_state["ss_giyim_val"] = 0.0
+        st.session_state["ss_ayakkabi_tip"] = "Net"
+        st.session_state["ss_ayakkabi_val"] = 0.0
+        st.session_state["ss_yilbasi_tip"] = "Net"
+        st.session_state["ss_yilbasi_val"] = 0.0
+        st.session_state["ss_iz_m"] = "Maktu"
+        st.session_state["ss_iz_t"] = "Net"
+        st.session_state["ss_iz_v"] = 0.0
+        st.session_state["ss_ba_m"] = "Maktu"
+        st.session_state["ss_ba_t"] = "Net"
+        st.session_state["ss_ba_v"] = 0.0
+        st.session_state["ss_pr_m"] = "Maktu"
+        st.session_state["ss_pr_t"] = "Net"
+        st.session_state["ss_pr_v"] = 0.0
+        st.session_state["ss_ikramiye"] = 0
+        st.session_state["ss_yasal_aile"] = False
+        st.session_state["ss_muafiyet_aile_tik"] = False
+        st.session_state["ss_maktu_aile"] = 0.0
+        st.session_state["ss_yasal_cocuk_tik"] = False
+        st.session_state["ss_muafiyet_cocuk_tik"] = False
+        st.session_state["ss_maktu_cocuk_birim"] = 0.0
+        st.session_state["ss_v_hesap"] = "Sabit"
+        st.session_state["ss_v_mod"] = "Maktu"
+        st.session_state["ss_v_val"] = 0.0
+        st.session_state["ss_g_hesap"] = "Sabit"
+        st.session_state["ss_g_mod"] = "Maktu"
+        st.session_state["ss_g_val"] = 0.0
+        st.session_state["ss_eo_tip"] = "Günlük Ücret"
+        st.session_state["ss_eo_mod"] = "Katsayı"
+        st.session_state["ss_eo_val"] = 0.0
+        st.session_state["ss_denge_aktif"] = False
+        st.session_state["ss_denge_oran"] = 11.0
+        # Widget key'lerini de sıfırla
+        st.session_state["isyeri_kutusu"] = ""
+        st.session_state["calisan_sayisi_kutusu"] = 0
+        st.session_state["ek1_mod"] = "Maktu"
+        st.session_state["ek1_val"] = 0.0
+        st.session_state["ek1_per"] = "Aylık"
+        st.session_state["ek2_mod"] = "Maktu"
+        st.session_state["ek2_val"] = 0.0
+        st.session_state["ek2_per"] = "Aylık"
+        st.session_state["v_h"] = "Sabit"
+        st.session_state["v_m"] = "Maktu"
+        st.session_state["v_v"] = 0.0
+        st.session_state["g_h"] = "Sabit"
+        st.session_state["g_m"] = "Maktu"
+        st.session_state["g_v"] = 0.0
+        st.session_state["eo_t"] = "Günlük Ücret"
+        st.session_state["eo_m"] = "Katsayı"
+        st.session_state["eo_v"] = 0.0
         st.rerun()
 
     with st.expander("📂 Kayıtlı Veriyi Çağır", expanded=True):
@@ -239,14 +310,40 @@ with tab2:
                 r = df[df["İşyeri"] == secilen_isyeri].iloc[0]
 
                 def rv(col, default=""):
-                    return r.get(col, default) if r.get(col, default) != "" else default
+                    val = r.get(col, default)
+                    return val if (val != "" and val is not None) else default
+
+                def rf(col, default=0.0):
+                    """Sheets'ten Türkçe formatlı sayıyı float'a çevirir (86188,68 → 86188.68)."""
+                    try:
+                        val = str(r.get(col, "")).strip()
+                        if val == "" or val == "None":
+                            return float(default)
+                        if "," in val and "." in val:
+                            # "86.188,68" → binlik nokta, ondalık virgül
+                            val = val.replace(".", "").replace(",", ".")
+                        elif "," in val:
+                            # "86188,68" → sadece ondalık virgül
+                            val = val.replace(",", ".")
+                        return float(val)
+                    except Exception:
+                        return float(default)
+
+                def ri(col, default=0):
+                    try:
+                        val = str(r.get(col, "")).strip()
+                        if val == "" or val == "None":
+                            return int(default)
+                        return int(float(val))
+                    except Exception:
+                        return int(default)
 
                 # Tab 2 alanları
                 st.session_state["isyeri_kutusu"] = rv("İşyeri")
-                st.session_state["calisan_sayisi_kutusu"] = int(rv("Toplam Çalışan", 0))
+                st.session_state["calisan_sayisi_kutusu"] = ri("Toplam Çalışan")
                 st.session_state["ss_isyeri_adi"] = rv("İşyeri")
-                st.session_state["ss_toplam_calisan"] = int(rv("Toplam Çalışan", 0))
-                st.session_state["ss_uye_sayisi"] = int(rv("Üye Sayısı", 0))
+                st.session_state["ss_toplam_calisan"] = ri("Toplam Çalışan")
+                st.session_state["ss_uye_sayisi"] = ri("Üye Sayısı")
                 st.session_state["ss_grev_yasagi"] = rv("Grev Durumu", "Grev Yasağı Yok")
                 try:
                     bas_str = rv("TİS Başlangıç")
@@ -265,50 +362,50 @@ with tab2:
 
                 # Tab 1 alanları
                 st.session_state["ss_u_tipi"] = rv("Ana Maaş Tipi", "Net")
-                st.session_state["ss_u_tutar"] = float(rv("Ana Maaş Tutar", 20000.0))
+                st.session_state["ss_u_tutar"] = rf("Ana Maaş Tutar", 20000.0)
                 st.session_state["ss_ek1_mod"] = rv("Ek Ödeme 1 Mod", "Maktu")
-                st.session_state["ss_ek1_val"] = float(rv("Ek Ödeme 1 Değer", 0.0))
+                st.session_state["ss_ek1_val"] = rf("Ek Ödeme 1 Değer")
                 st.session_state["ss_ek1_per"] = rv("Ek Ödeme 1 Periyot", "Aylık")
                 st.session_state["ss_ek2_mod"] = rv("Ek Ödeme 2 Mod", "Maktu")
-                st.session_state["ss_ek2_val"] = float(rv("Ek Ödeme 2 Değer", 0.0))
+                st.session_state["ss_ek2_val"] = rf("Ek Ödeme 2 Değer")
                 st.session_state["ss_ek2_per"] = rv("Ek Ödeme 2 Periyot", "Aylık")
                 st.session_state["ss_gida_tip"] = rv("Gıda Tip", "Net")
-                st.session_state["ss_gida_val"] = float(rv("Gıda Tutar", 0.0))
+                st.session_state["ss_gida_val"] = rf("Gıda Tutar")
                 st.session_state["ss_yakacak_tip"] = rv("Yakacak Tip", "Net")
-                st.session_state["ss_yakacak_val"] = float(rv("Yakacak Tutar", 0.0))
+                st.session_state["ss_yakacak_val"] = rf("Yakacak Tutar")
                 st.session_state["ss_giyim_tip"] = rv("Giyim Tip", "Net")
-                st.session_state["ss_giyim_val"] = float(rv("Giyim Tutar", 0.0))
+                st.session_state["ss_giyim_val"] = rf("Giyim Tutar")
                 st.session_state["ss_ayakkabi_tip"] = rv("Ayakkabı Tip", "Net")
-                st.session_state["ss_ayakkabi_val"] = float(rv("Ayakkabı Tutar", 0.0))
+                st.session_state["ss_ayakkabi_val"] = rf("Ayakkabı Tutar")
                 st.session_state["ss_yilbasi_tip"] = rv("Yılbaşı Tip", "Net")
-                st.session_state["ss_yilbasi_val"] = float(rv("Yılbaşı Tutar", 0.0))
+                st.session_state["ss_yilbasi_val"] = rf("Yılbaşı Tutar")
                 st.session_state["ss_iz_m"] = rv("İzin Mod", "Maktu")
                 st.session_state["ss_iz_t"] = rv("İzin Tip", "Net")
-                st.session_state["ss_iz_v"] = float(rv("İzin Değer", 0.0))
+                st.session_state["ss_iz_v"] = rf("İzin Değer")
                 st.session_state["ss_ba_m"] = rv("Bayram Mod", "Maktu")
                 st.session_state["ss_ba_t"] = rv("Bayram Tip", "Net")
-                st.session_state["ss_ba_v"] = float(rv("Bayram Değer", 0.0))
+                st.session_state["ss_ba_v"] = rf("Bayram Değer")
                 st.session_state["ss_pr_m"] = rv("Prim Mod", "Maktu")
                 st.session_state["ss_pr_t"] = rv("Prim Tip", "Net")
-                st.session_state["ss_pr_v"] = float(rv("Prim Değer", 0.0))
-                st.session_state["ss_ikramiye"] = int(rv("İkramiye Günü", 0))
+                st.session_state["ss_pr_v"] = rf("Prim Değer")
+                st.session_state["ss_ikramiye"] = ri("İkramiye Günü")
                 st.session_state["ss_yasal_aile"] = rv("Yasal Aile", "False") == "True"
                 st.session_state["ss_muafiyet_aile_tik"] = rv("Muafiyet Aile", "False") == "True"
-                st.session_state["ss_maktu_aile"] = float(rv("Maktu Aile", 0.0))
+                st.session_state["ss_maktu_aile"] = rf("Maktu Aile")
                 st.session_state["ss_yasal_cocuk_tik"] = rv("Yasal Çocuk", "False") == "True"
                 st.session_state["ss_muafiyet_cocuk_tik"] = rv("Muafiyet Çocuk", "False") == "True"
-                st.session_state["ss_maktu_cocuk_birim"] = float(rv("Maktu Çocuk Birim", 0.0))
+                st.session_state["ss_maktu_cocuk_birim"] = rf("Maktu Çocuk Birim")
                 st.session_state["ss_v_hesap"] = rv("Vardiya Hesap", "Sabit")
                 st.session_state["ss_v_mod"] = rv("Vardiya Mod", "Maktu")
-                st.session_state["ss_v_val"] = float(rv("Vardiya Değer", 0.0))
+                st.session_state["ss_v_val"] = rf("Vardiya Değer")
                 st.session_state["ss_g_hesap"] = rv("Gece Hesap", "Sabit")
                 st.session_state["ss_g_mod"] = rv("Gece Mod", "Maktu")
-                st.session_state["ss_g_val"] = float(rv("Gece Değer", 0.0))
+                st.session_state["ss_g_val"] = rf("Gece Değer")
                 st.session_state["ss_eo_tip"] = rv("Ek Özel Tip", "Günlük Ücret")
                 st.session_state["ss_eo_mod"] = rv("Ek Özel Mod", "Katsayı")
-                st.session_state["ss_eo_val"] = float(rv("Ek Özel Değer", 0.0))
+                st.session_state["ss_eo_val"] = rf("Ek Özel Değer")
                 st.session_state["ss_denge_aktif"] = rv("Denge Aktif", "False") == "True"
-                st.session_state["ss_denge_oran"] = float(rv("Denge Oran", 11.0))
+                st.session_state["ss_denge_oran"] = rf("Denge Oran", 11.0)
 
                 st.success(f"✅ {secilen_isyeri} verileri yüklendi! Tab 1'e geçerek kontrol edebilirsiniz.")
 
