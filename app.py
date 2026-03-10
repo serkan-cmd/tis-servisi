@@ -657,7 +657,7 @@ with tab1:
     v_tutar = calc_hybrid(v_val, v_mod, g_brut)
     if v_hesap_tipi == "Fiili (195/225)":
         v_tutar = (v_tutar * 195) / 225
-    g_tutar = calc_hybrid(g_val, g_mod, g_brut)
+    g_tutar = calc_hybrid(g_val_gece, g_mod, g_brut)
     if g_hesap_tipi == "Fiili (80/225)":
         g_tutar = (g_tutar * 80) / 225
 
