@@ -527,15 +527,15 @@ with tab1:
             st.write("🍞 **Gıda Yardımı (Aylık)**")
             g_tip = st.radio("Gıda Tip", ["Net", "Brüt"], horizontal=True,
                              index=["Net", "Brüt"].index(st.session_state["ss_gida_tip"]))
-            g_val = st.number_input("Gıda Tutarı", value=st.session_state["ss_gida_val"])
-            gida = yardim_brutlestir(g_val, g_tip, secilen_oran)
+            gida_val = st.number_input("Gıda Tutarı", value=st.session_state["ss_gida_val"])
+            gida = yardim_brutlestir(gida_val, g_tip, secilen_oran)
     with col_s2:
         with st.container(border=True):
             st.write("🔥 **Yakacak Yardımı (Aylık)**")
             y_tip = st.radio("Yakacak Tip", ["Net", "Brüt"], horizontal=True,
                              index=["Net", "Brüt"].index(st.session_state["ss_yakacak_tip"]))
-            y_val = st.number_input("Yakacak Tutarı", value=st.session_state["ss_yakacak_val"])
-            yakacak = yardim_brutlestir(y_val, y_tip, secilen_oran)
+            yakacak_val = st.number_input("Yakacak Tutarı", value=st.session_state["ss_yakacak_val"])
+            yakacak = yardim_brutlestir(yakacak_val, y_tip, secilen_oran)
 
     col_s3, col_s4, col_s5 = st.columns(3)
     with col_s3:
@@ -543,19 +543,22 @@ with tab1:
             st.write("👕 **Giyim (Yıllık)**")
             giy_tip = st.radio("Giyim Tip", ["Net", "Brüt"], horizontal=True,
                                index=["Net", "Brüt"].index(st.session_state["ss_giyim_tip"]))
-            giyim = yardim_brutlestir(st.number_input("Giyim Tutar", value=st.session_state["ss_giyim_val"]), giy_tip, secilen_oran)
+            giyim_val = st.number_input("Giyim Tutar", value=st.session_state["ss_giyim_val"])
+            giyim = yardim_brutlestir(giyim_val, giy_tip, secilen_oran)
     with col_s4:
         with st.container(border=True):
             st.write("👟 **Ayakkabı (Yıllık)**")
             ayk_tip = st.radio("Ayakkabı Tip", ["Net", "Brüt"], horizontal=True,
                                index=["Net", "Brüt"].index(st.session_state["ss_ayakkabi_tip"]))
-            ayakkabi = yardim_brutlestir(st.number_input("Ayakkabı Tutar", value=st.session_state["ss_ayakkabi_val"]), ayk_tip, secilen_oran)
+            ayakkabi_val = st.number_input("Ayakkabı Tutar", value=st.session_state["ss_ayakkabi_val"])
+            ayakkabi = yardim_brutlestir(ayakkabi_val, ayk_tip, secilen_oran)
     with col_s5:
         with st.container(border=True):
             st.write("🎁 **Yılbaşı (Yıllık)**")
             yil_tip = st.radio("Yılbaşı Tip", ["Net", "Brüt"], horizontal=True,
                                index=["Net", "Brüt"].index(st.session_state["ss_yilbasi_tip"]))
-            yilbasi = yardim_brutlestir(st.number_input("Yılbaşı Tutar", value=st.session_state["ss_yilbasi_val"]), yil_tip, secilen_oran)
+            yilbasi_val = st.number_input("Yılbaşı Tutar", value=st.session_state["ss_yilbasi_val"])
+            yilbasi = yardim_brutlestir(yilbasi_val, yil_tip, secilen_oran)
 
     col_s6, col_s7, col_s8 = st.columns(3)
     with col_s6:
@@ -624,7 +627,7 @@ with tab1:
             g_mod = st.selectbox("Birim", ["Maktu", "Yüzde (%)"],
                                  index=["Maktu", "Yüzde (%)"].index(st.session_state["ss_g_mod"]),
                                  key="g_m")
-            g_val = st.number_input("Miktar", value=st.session_state["ss_g_val"], key="g_v")
+            g_val_gece = st.number_input("Miktar", value=st.session_state["ss_g_val"], key="g_v")
     with v3:
         with st.container(border=True):
             st.write("➕ **Ücrete Bağlı Ek Özel**")
@@ -726,11 +729,11 @@ with tab1:
                     u_tipi, u_tutar,
                     ek_mod, ek_val, ek_per,
                     ek2_mod, ek2_val, ek2_per,
-                    g_tip, g_val,
-                    y_tip, y_val,
-                    giy_tip, st.session_state["ss_giyim_val"],
-                    ayk_tip, st.session_state["ss_ayakkabi_val"],
-                    yil_tip, st.session_state["ss_yilbasi_val"],
+                    g_tip, gida_val,
+                    y_tip, yakacak_val,
+                    giy_tip, giyim_val,
+                    ayk_tip, ayakkabi_val,
+                    yil_tip, yilbasi_val,
                     iz_m, iz_t, iz_v,
                     ba_m, ba_t, ba_v,
                     pr_m, pr_t, pr_v,
@@ -738,12 +741,12 @@ with tab1:
                     str(yasal_aile), str(muafiyet_aile_tik), maktu_aile,
                     str(yasal_cocuk_tik), str(muafiyet_cocuk_tik), maktu_cocuk_birim,
                     v_hesap_tipi, v_mod, v_val,
-                    g_hesap_tipi, g_mod, g_val,
+                    g_hesap_tipi, g_mod, g_val_gece,
                     ek_ozel_tip, ek_ozel_mod, ek_ozel_val,
                     str(denge_aktif), st.session_state["ss_denge_oran"],
-                    f"{a_brut:.2f}",
-                    f"{toplam_sosyal:.2f}",
-                    f"{t_maliyet:.2f}"
+                    a_brut,
+                    toplam_sosyal,
+                    t_maliyet
                 ]
 
                 sheet.append_row(kayit_row)
