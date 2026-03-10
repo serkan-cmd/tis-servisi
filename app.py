@@ -9,9 +9,12 @@ from datetime import datetime
 st.set_page_config(page_title="Petrol-İş TİS Servisi v1.6", layout="wide")
 
 # --- KULLANICI VERİTABANI (secrets'tan okunur) ---
-# st.secrets["users"] içinde şu yapı bekleniyor:
-# [users]
-# ozgun2026 = {isim = "Özgün Çelik Aygün", sifre = "ozgun123"}
+st.secrets["users"] içinde şu yapı bekleniyor:
+[users]
+ozgun2026 = {isim = "Özgün Çelik Aygün", sifre = "ozgun123"}
+serkan2026 = {isim = "Serkan Gümüşbaş", sifre = "serkan321"}
+tugce2026 = {isim = "Tuğçe Kalyoncu", sifre = "tugce123"}
+melis2026 = {isim = "Melis Akkuzu", sifre = "melis321"}
 # ... vb.
 # Eğer secrets yoksa fallback olarak boş dict kullanılır.
 def get_users():
