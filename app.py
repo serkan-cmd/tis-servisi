@@ -46,7 +46,6 @@ if not check_password():
 with st.sidebar:
     st.markdown(f"### 👤 Uzman: **{st.session_state['active_user']}**")
     if st.button("Güvenli Çıkış"):
-        # Korunacak anahtarları belirle, geri kalanı sil
         korunan = {"password_correct", "active_user"}
         for key in list(st.session_state.keys()):
             if key not in korunan:
@@ -84,18 +83,15 @@ with st.sidebar:
 # --- HESAPLAMA ARAÇLARI ---
 
 def calc_hybrid(val, mode, daily_base):
-    """Maktu, Katsayı veya Yüzdeye göre brüt tutarı hesaplar"""
     if mode == "Maktu":
         return val
     elif mode == "Katsayı (Gün)":
         return daily_base * val
     elif mode == "Yüzde (%)":
-        # Aylık brüt üzerinden yüzde hesabı
         return daily_base * 30 * (val / 100)
     return 0
 
 def maas_brutlestir(tutar, tip, oran):
-    """Ana ücret için istisnalı brütleştirme"""
     sabitler = {
         0.71491: 4462.03,
         0.67241: 4788.45,
@@ -108,13 +104,11 @@ def maas_brutlestir(tutar, tip, oran):
     return (tutar - sabit) / oran
 
 def yardim_brutlestir(tutar, tip, oran):
-    """Sosyal yardımlar için doğrudan brütleştirme"""
     if tip == "Brüt":
         return tutar
     return tutar / oran
 
 def verileri_yukle_ve_getir():
-    """Google Sheets'ten tüm kayıtları çeker. (Tek seferlik çağrı)"""
     try:
         scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
         s = st.secrets["connections"]["gsheets"]
@@ -127,6 +121,21 @@ def verileri_yukle_ve_getir():
         st.error(f"Veritabanına bağlanılamadı: {e}")
         return pd.DataFrame()
 
+# --- SESSION STATE VARSAYILANLARI ---
+# Tab 1'in her zaman okuyabileceği güvenli başlangıç değerleri
+if "ss_isyeri_adi" not in st.session_state:
+    st.session_state["ss_isyeri_adi"] = ""
+if "ss_subeler" not in st.session_state:
+    st.session_state["ss_subeler"] = []
+if "ss_tis_bas" not in st.session_state:
+    st.session_state["ss_tis_bas"] = datetime.now().date()
+if "ss_tis_bit" not in st.session_state:
+    st.session_state["ss_tis_bit"] = datetime.now().replace(year=datetime.now().year + 2).date()
+if "ss_uye_sayisi" not in st.session_state:
+    st.session_state["ss_uye_sayisi"] = 0
+if "ss_grev_yasagi" not in st.session_state:
+    st.session_state["ss_grev_yasagi"] = "Grev Yasağı Yok"
+
 # --- SEKME YAPISI ---
 tab1, tab2 = st.tabs(["💰 Ücret ve Sosyal Ödemeler", "🏢 İşyeri Bilgileri"])
 
@@ -136,11 +145,9 @@ tab1, tab2 = st.tabs(["💰 Ücret ve Sosyal Ödemeler", "🏢 İşyeri Bilgiler
 with tab2:
     st.header("🏢 İşyeri ve Şube Bilgileri")
 
-    # Veriyi tek seferde çek
     df = verileri_yukle_ve_getir()
 
     if st.button("➕ Yeni Kayıt Başlat"):
-        # Korunacak anahtarları belirle, geri kalanı sil
         korunan = {"password_correct", "active_user"}
         for key in list(st.session_state.keys()):
             if key not in korunan:
@@ -154,9 +161,28 @@ with tab2:
 
             if st.button("Verileri Seçili İşyeri İçin Yükle"):
                 secili_kayit = df[df["İşyeri"] == secilen_isyeri].iloc[0]
-                # Form alanlarını session state üzerinden doldur
-                st.session_state["isyeri_kutusu"] = str(secili_kayit.get("İşyeri", ""))
-                st.session_state["calisan_sayisi_kutusu"] = int(secili_kayit.get("Toplam Çalışan", 0))
+
+                isyeri_val = str(secili_kayit.get("İşyeri", ""))
+                calisan_val = int(secili_kayit.get("Toplam Çalışan", 0))
+
+                st.session_state["isyeri_kutusu"] = isyeri_val
+                st.session_state["calisan_sayisi_kutusu"] = calisan_val
+
+                # Tab 1 için ss_ anahtarlarını güncelle
+                st.session_state["ss_isyeri_adi"] = isyeri_val
+                st.session_state["ss_uye_sayisi"] = calisan_val
+
+                # TİS tarihlerini parse et
+                try:
+                    bas_str = secili_kayit.get("TİS Başlangıç", "")
+                    bit_str = secili_kayit.get("TİS Bitiş", "")
+                    if bas_str:
+                        st.session_state["ss_tis_bas"] = datetime.strptime(bas_str, "%d/%m/%Y").date()
+                    if bit_str:
+                        st.session_state["ss_tis_bit"] = datetime.strptime(bit_str, "%d/%m/%Y").date()
+                except Exception:
+                    pass
+
                 st.success(f"✅ {secilen_isyeri} verileri yüklendi!")
 
         st.divider()
@@ -179,11 +205,14 @@ with tab2:
 
         st.divider()
         st.subheader("📅 Sözleşme Dönemi")
-        tis_baslangic = st.date_input("Yürürlük Başlangıç Tarihi", value=datetime.now())
-        tis_bitis = st.date_input(
-            "Yürürlük Bitiş Tarihi",
-            value=datetime.now().replace(year=datetime.now().year + 2)
-        )
+        tis_baslangic = st.date_input("Yürürlük Başlangıç Tarihi", value=st.session_state["ss_tis_bas"])
+        tis_bitis = st.date_input("Yürürlük Bitiş Tarihi", value=st.session_state["ss_tis_bit"])
+
+        # Tab 1 için anlık değerleri session_state'e yaz
+        st.session_state["ss_isyeri_adi"] = isyeri_adi
+        st.session_state["ss_subeler"] = subeler
+        st.session_state["ss_tis_bas"] = tis_baslangic.date() if hasattr(tis_baslangic, 'date') else tis_baslangic
+        st.session_state["ss_tis_bit"] = tis_bitis.date() if hasattr(tis_bitis, 'date') else tis_bitis
 
         st.divider()
         st.subheader("📊 Sözleşme İlerleme Durumu")
@@ -205,7 +234,6 @@ with tab2:
         else:
             st.success("✅ Sözleşme süreci normal takviminde ilerliyor.")
 
-        # Tarih nesnelerini .date() formatına normalize et
         bas_date = tis_baslangic.date() if hasattr(tis_baslangic, 'date') else tis_baslangic
         bit_date = tis_bitis.date() if hasattr(tis_bitis, 'date') else tis_bitis
 
@@ -224,32 +252,21 @@ with tab2:
         uye_sayisi = st.number_input("Sendikalı Üye Sayısı", value=0)
         grev_yasagi = st.selectbox("Grev Yasağı Durumu", ["Grev Yasağı Yok", "Grev Yasağı Var"])
 
+        # Tab 1 için anlık değerleri session_state'e yaz
+        st.session_state["ss_uye_sayisi"] = uye_sayisi
+        st.session_state["ss_grev_yasagi"] = grev_yasagi
+
 # -------------------------------------------------------
 # TAB 1 — Ücret ve Sosyal Ödemeler
 # -------------------------------------------------------
 with tab1:
-    # Tab2'deki değişkenler burada kullanıldığından, henüz tanımlanmamış
-    # olabilir. Güvenli varsayılanlar atanıyor.
-    if "isyeri_kutusu" not in st.session_state:
-        st.session_state["isyeri_kutusu"] = ""
-
-    _isyeri_adi   = st.session_state.get("isyeri_kutusu", "")
-    _subeler      = []   # tab2'de seçilen değer session_state'e bağlı değil; kayıtta boş kalabilir
-    _tis_bas      = datetime.now().date()
-    _tis_bit      = datetime.now().replace(year=datetime.now().year + 2).date()
-    _uye_sayisi   = 0
-    _grev_yasagi  = "Grev Yasağı Yok"
-
-    # Eğer tab2 ziyaret edildiyse gerçek değerleri al
-    try:
-        _isyeri_adi  = isyeri_adi
-        _subeler     = subeler
-        _tis_bas     = tis_baslangic
-        _tis_bit     = tis_bitis
-        _uye_sayisi  = uye_sayisi
-        _grev_yasagi = grev_yasagi
-    except NameError:
-        pass
+    # Tab 2'deki tüm veriler artık session_state üzerinden güvenle okunuyor
+    _isyeri_adi  = st.session_state["ss_isyeri_adi"]
+    _subeler     = st.session_state["ss_subeler"]
+    _tis_bas     = st.session_state["ss_tis_bas"]
+    _tis_bit     = st.session_state["ss_tis_bit"]
+    _uye_sayisi  = st.session_state["ss_uye_sayisi"]
+    _grev_yasagi = st.session_state["ss_grev_yasagi"]
 
     st.header("💵 Ücret ve Ek Ödemeler")
     c1, c2, c3 = st.columns(3)
@@ -267,7 +284,6 @@ with tab1:
         ek2_val = st.number_input("Değer", value=0.0, key="ek2_val")
         ek2_per = st.selectbox("Periyot", ["Aylık", "Yıllık"], key="ek2_per")
 
-    # Temel Maaş Hesaplama
     a_brut = maas_brutlestir(u_tutar, u_tipi, secilen_oran)
     g_brut = a_brut / 30
 
@@ -369,11 +385,10 @@ with tab1:
     ay_ek1 = calc_hybrid(ek_val, ek_mod, g_brut) if ek_per == "Aylık" else calc_hybrid(ek_val, ek_mod, g_brut) / 12
     ay_ek2 = calc_hybrid(ek2_val, ek2_mod, g_brut) if ek2_per == "Aylık" else calc_hybrid(ek2_val, ek2_mod, g_brut) / 12
 
-    # Aile & Çocuk — DÜZELTİLDİ: sabit_cocuk_sayisi=2, katsayı tekrarı kaldırıldı
     sabit_cocuk_sayisi = 2
     yasal_aile_tutar = aile_yasal if yasal_aile else 0
     muafiyet_aile_tutar = muafiyet_aile if muafiyet_aile_tik else 0
-    yasal_cocuk_tutar = (cocuk_6_ustu_yasal * sabit_cocuk_sayisi) if yasal_cocuk_tik else 0  # Düzeltildi
+    yasal_cocuk_tutar = (cocuk_6_ustu_yasal * sabit_cocuk_sayisi) if yasal_cocuk_tik else 0
     muafiyet_cocuk_tutar = muafiyet_cocuk if muafiyet_cocuk_tik else 0
     maktu_cocuk_toplam = maktu_cocuk_birim * sabit_cocuk_sayisi
     ay_aile_cocuk_paketi = (
@@ -381,7 +396,6 @@ with tab1:
         yasal_cocuk_tutar + muafiyet_cocuk_tutar + maktu_cocuk_toplam
     )
 
-    # Vardiya & Gece
     v_tutar = calc_hybrid(v_val, v_mod, g_brut)
     if v_hesap_tipi == "Fiili (195/225)":
         v_tutar = (v_tutar * 195) / 225
@@ -389,7 +403,6 @@ with tab1:
     if g_hesap_tipi == "Fiili (80/225)":
         g_tutar = (g_tutar * 80) / 225
 
-    # Ek Özel
     if ek_ozel_tip == "Günlük Ücret":
         ay_ek_ozel = g_brut * (ek_ozel_val if ek_ozel_mod == "Katsayı" else ek_ozel_val / 100)
     else:
@@ -413,7 +426,6 @@ with tab1:
         else:
             ay_denge = 0.0
 
-    # Toplamlar
     toplam_sosyal = (
         gida + yakacak + ay_izin + ay_bayram + ay_prim +
         (giyim + ayakkabi + yilbasi) / 12 +
