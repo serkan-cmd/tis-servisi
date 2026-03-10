@@ -228,59 +228,6 @@ with tab2:
         for key in list(st.session_state.keys()):
             if key not in korunan:
                 del st.session_state[key]
-        # ss_ anahtarlarını varsayılan değerlere sıfırla
-        st.session_state["ss_isyeri_adi"] = ""
-        st.session_state["ss_subeler"] = []
-        st.session_state["ss_tis_bas"] = datetime.now().date()
-        st.session_state["ss_tis_bit"] = datetime.now().replace(year=datetime.now().year + 2).date()
-        st.session_state["ss_uye_sayisi"] = 0
-        st.session_state["ss_toplam_calisan"] = 0
-        st.session_state["ss_grev_yasagi"] = "Grev Yasağı Yok"
-        st.session_state["ss_u_tipi"] = "Net"
-        st.session_state["ss_u_tutar"] = 20000.0
-        st.session_state["ss_ek1_mod"] = "Maktu"
-        st.session_state["ss_ek1_val"] = 0.0
-        st.session_state["ss_ek1_per"] = "Aylık"
-        st.session_state["ss_ek2_mod"] = "Maktu"
-        st.session_state["ss_ek2_val"] = 0.0
-        st.session_state["ss_ek2_per"] = "Aylık"
-        st.session_state["ss_gida_tip"] = "Net"
-        st.session_state["ss_gida_val"] = 0.0
-        st.session_state["ss_yakacak_tip"] = "Net"
-        st.session_state["ss_yakacak_val"] = 0.0
-        st.session_state["ss_giyim_tip"] = "Net"
-        st.session_state["ss_giyim_val"] = 0.0
-        st.session_state["ss_ayakkabi_tip"] = "Net"
-        st.session_state["ss_ayakkabi_val"] = 0.0
-        st.session_state["ss_yilbasi_tip"] = "Net"
-        st.session_state["ss_yilbasi_val"] = 0.0
-        st.session_state["ss_iz_m"] = "Maktu"
-        st.session_state["ss_iz_t"] = "Net"
-        st.session_state["ss_iz_v"] = 0.0
-        st.session_state["ss_ba_m"] = "Maktu"
-        st.session_state["ss_ba_t"] = "Net"
-        st.session_state["ss_ba_v"] = 0.0
-        st.session_state["ss_pr_m"] = "Maktu"
-        st.session_state["ss_pr_t"] = "Net"
-        st.session_state["ss_pr_v"] = 0.0
-        st.session_state["ss_ikramiye"] = 0
-        st.session_state["ss_yasal_aile"] = False
-        st.session_state["ss_muafiyet_aile_tik"] = False
-        st.session_state["ss_maktu_aile"] = 0.0
-        st.session_state["ss_yasal_cocuk_tik"] = False
-        st.session_state["ss_muafiyet_cocuk_tik"] = False
-        st.session_state["ss_maktu_cocuk_birim"] = 0.0
-        st.session_state["ss_v_hesap"] = "Sabit"
-        st.session_state["ss_v_mod"] = "Maktu"
-        st.session_state["ss_v_val"] = 0.0
-        st.session_state["ss_g_hesap"] = "Sabit"
-        st.session_state["ss_g_mod"] = "Maktu"
-        st.session_state["ss_g_val"] = 0.0
-        st.session_state["ss_eo_tip"] = "Günlük Ücret"
-        st.session_state["ss_eo_mod"] = "Katsayı"
-        st.session_state["ss_eo_val"] = 0.0
-        st.session_state["ss_denge_aktif"] = False
-        st.session_state["ss_denge_oran"] = 11.0
         st.rerun()
 
     with st.expander("📂 Kayıtlı Veriyi Çağır", expanded=True):
