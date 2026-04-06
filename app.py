@@ -463,11 +463,7 @@ with tab1:
     st.session_state["s_calisan"] = toplam_calisan
     st.session_state["s_tis_bas"] = bas_d
     st.session_state["s_tis_bit"] = bit_d
-    st.session_state["s_zam1_ocak"] = zam1_ocak
-    st.session_state["s_zam1_tem"] = zam1_tem
-    st.session_state["s_zam2_ocak"] = zam2_ocak
-    st.session_state["s_zam2_tem"] = zam2_tem
-
+    
 # ============================================================
 # TAB 2 — ÜCRET VE SOSYAL ÖDEMELER
 # ============================================================
