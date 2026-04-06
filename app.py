@@ -570,43 +570,43 @@ with tab2:
 
     # --- TAB 2 HESAPLAMA MOTORU GÜNCELLEME ---
     bugun = datetime.now().date()
-guncel_ana_maas = u_tutar 
-ay_map = {"Ocak": 1, "Şubat": 2, "Mart": 3, "Nisan": 4, "Mayıs": 5, "Haziran": 6, 
-          "Temmuz": 7, "Ağustos": 8, "Eylül": 9, "Ekim": 10, "Kasım": 11, "Aralık": 12}
+    guncel_ana_maas = u_tutar 
+    ay_map = {"Ocak": 1, "Şubat": 2, "Mart": 3, "Nisan": 4, "Mayıs": 5, "Haziran": 6, 
+              "Temmuz": 7, "Ağustos": 8, "Eylül": 9, "Ekim": 10, "Kasım": 11, "Aralık": 12}
 
-for donem in st.session_state.get("s_zam_verileri", []):
-    zam_tarihi = datetime(int(donem["yil"]), ay_map[donem["ay"]], 1).date()
+    for donem in st.session_state.get("s_zam_verileri", []):
+        zam_tarihi = datetime(int(donem["yil"]), ay_map[donem["ay"]], 1).date()
     
-    if zam_tarihi >= bugun:
-        donem_toplam_artisi = 0.0
-        gecici_maas = guncel_ana_maas # Bağlı hesaplama için
+        if zam_tarihi >= bugun:
+            donem_toplam_artisi = 0.0
+            gecici_maas = guncel_ana_maas # Bağlı hesaplama için
         
-        for kalem in donem["kalemler"]:
-            # 1. Kıdem etkisini hesapla
-            # Eğer kıdemli ise: %2 x 10 yıl = %20 veya 100 TL x 10 yıl = 1000 TL
-            etkili_deger = kalem["deger"] * kalem["ort_kidem"] if kalem["kidemli"] else kalem["deger"]
+            for kalem in donem["kalemler"]:
+                # 1. Kıdem etkisini hesapla
+                # Eğer kıdemli ise: %2 x 10 yıl = %20 veya 100 TL x 10 yıl = 1000 TL
+                etkili_deger = kalem["deger"] * kalem["ort_kidem"] if kalem["kidemli"] else kalem["deger"]
             
-            if donem["hesap_tipi"] == "Birbirine Bağlı (Bileşik)":
-                # Her kalem bir öncekinin üzerine biner
-                if kalem["tip"] == "Yüzde (%)":
-                    gecici_maas *= (1 + (etkili_deger / 100))
+                if donem["hesap_tipi"] == "Birbirine Bağlı (Bileşik)":
+                    # Her kalem bir öncekinin üzerine biner
+                    if kalem["tip"] == "Yüzde (%)":
+                        gecici_maas *= (1 + (etkili_deger / 100))
+                    else:
+                        gecici_maas += etkili_deger
                 else:
-                    gecici_maas += etkili_deger
-            else:
-                # Her kalem ana maaş üzerinden hesaplanır ve toplanır
-                if kalem["tip"] == "Yüzde (%)":
-                    donem_toplam_artisi += (guncel_ana_maas * (etkili_deger / 100))
-                else:
-                    donem_toplam_artisi += etkili_deger
+                    # Her kalem ana maaş üzerinden hesaplanır ve toplanır
+                    if kalem["tip"] == "Yüzde (%)":
+                        donem_toplam_artisi += (guncel_ana_maas * (etkili_deger / 100))
+                    else:
+                        donem_toplam_artisi += etkili_deger
         
-        # Dönem sonu maaş güncellemesi
-        if donem["hesap_tipi"] == "Birbirine Bağlı (Bileşik)":
-            guncel_ana_maas = gecici_maas
-        else:
-            guncel_ana_maas += donem_toplam_artisi
+            # Dönem sonu maaş güncellemesi
+            if donem["hesap_tipi"] == "Birbirine Bağlı (Bileşik)":
+                guncel_ana_maas = gecici_maas
+            else:
+                guncel_ana_maas += donem_toplam_artisi
 
-a_brut = guncel_ana_maas
-g_brut = a_brut / 30 
+    a_brut = guncel_ana_maas
+    g_brut = a_brut / 30 
     # ----------------------------------------------
 
     st.markdown("### 🎁 Sosyal Yardımlar")
