@@ -737,6 +737,7 @@ with tab2:
                 baslik_guncelle(sheet)
                 tis_bas_str = st.session_state["s_tis_bas"].strftime("%d/%m/%Y")
                 tis_bit_str = st.session_state["s_tis_bit"].strftime("%d/%m/%Y")
+                zam_listesi = st.session_state.get("s_zam_verileri", [])
                 zam_ozet_str = " | ".join([f"{z['ay']} {z['yil']}: {z['deger']} {z['tip']}" for z in zam_verileri])
                 row = [
                     datetime.now().strftime("%d/%m/%Y %H:%M"),
