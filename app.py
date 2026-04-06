@@ -527,36 +527,26 @@ with tab2:
                                    index=["Aylık", "Yıllık"].index(st.session_state["s_ek2_per"]),
                                    key="ek2_per_w")
 
-    # --- HESAPLAMA DÖNGÜSÜ (Hizalama Düzeltildi) ---
-    bugun = datetime.now().date()
-    guncel_ana_maas = u_tutar 
+    # --- TAB 2 HESAPLAMA MOTORU GÜNCELLEME ---
+bugun = datetime.now().date()
+guncel_ana_maas = u_tutar 
+ay_map = {"Ocak": 1, "Şubat": 2, "Mart": 3, "Nisan": 4, "Mayıs": 5, "Haziran": 6, 
+          "Temmuz": 7, "Ağustos": 8, "Eylül": 9, "Ekim": 10, "Kasım": 11, "Aralık": 12}
 
-    # Ay isimlerini sayıya çeviren yardımcı sözlük (Tarih karşılaştırması için)
-    ay_map = {
-        "Ocak": 1, "Şubat": 2, "Mart": 3, "Nisan": 4, "Mayıs": 5, "Haziran": 6,
-        "Temmuz": 7, "Ağustos": 8, "Eylül": 9, "Ekim": 10, "Kasım": 11, "Aralık": 12
-    }
+for donem in st.session_state.get("s_zam_verileri", []):
+    zam_tarihi = datetime(int(donem["yil"]), ay_map[donem["ay"]], 1).date()
+    
+    # Sadece bugün ve gelecek zamları hesapla
+    if zam_tarihi >= bugun:
+        # Bu dönem içindeki her bir kalemi sırayla uygula
+        for kalem in donem["kalemler"]:
+            if kalem["tip"] == "Yüzde (%)" and kalem["deger"] > 0:
+                guncel_ana_maas *= (1 + (kalem["deger"] / 100))
+            elif kalem["tip"] == "Maktu (TL)" and kalem["deger"] > 0:
+                guncel_ana_maas += kalem["deger"]
 
-    # s_zam_verileri içindeki her bir zam dönemini geziyoruz
-    for zam in st.session_state.get("s_zam_verileri", []):
-        # Zam tarihini karşılaştırma için date objesine çeviriyoruz
-        zam_tarihi = datetime(int(zam["yil"]), ay_map[zam["ay"]], 1).date()
-        
-        # SADECE BUGÜN VEYA GELECEKTEKİ ZAMLARI UYGULA
-        if zam_tarihi >= bugun:
-            # 1. Yüzdesel zam uygula
-            if zam.get("yuzde", 0) > 0:
-                guncel_ana_maas = guncel_ana_maas * (1 + (zam["yuzde"] / 100))
-            
-            # 2. Maktu/seyyanen artışı ekle
-            if zam.get("maktu", 0) > 0:
-                guncel_ana_maas = guncel_ana_maas + zam["maktu"]
-        else:
-            # Geçmiş tarihlidir, sadece listelenir ama maaşı artırmaz
-            pass
-
-    a_brut = guncel_ana_maas 
-    g_brut = a_brut / 30 
+a_brut = guncel_ana_maas
+g_brut = a_brut / 30 
     # ----------------------------------------------
 
     st.markdown("### 🎁 Sosyal Yardımlar")
