@@ -484,21 +484,6 @@ with tab1:
 with tab2:
     st.header("💰 Ücret ve Ek Ödemeler")
 
-    # --- YENİ: DİNAMİK ZAM GİRİŞ ALANI ---
-    st.subheader("📈 Zam Dönemleri")
-    zam_donem_sayisi = st.number_input("Toplam Zam Dönemi Sayısı", min_value=1, max_value=36, value=1)
-    
-    zam_verileri = [] # Listenin var olduğundan emin oluyoruz
-    z_cols = st.columns([1, 1, 1.5, 1.5, 2])
-    for i in range(int(zam_donem_sayisi)):
-        with z_cols[0]: yil = st.selectbox(f"Yıl {i+1}", [2024, 2025, 2026, 2027], key=f"y_{i}")
-        with z_cols[1]: ay = st.selectbox(f"Ay {i+1}", ["Ocak", "Temmuz", "Mart", "Eylül"], key=f"a_{i}")
-        with z_cols[2]: tip = st.selectbox(f"Tip {i+1}", ["Yüzde (%)", "Maktu (TL)"], key=f"t_{i}")
-        with z_cols[3]: deger = st.number_input(f"Tutar {i+1}", min_value=0.0, key=f"v_{i}")
-        with z_cols[4]: aciklama = st.text_input(f"Not {i+1}", key=f"n_{i}")
-        
-        zam_verileri.append({"yil": yil, "ay": ay, "tip": tip, "deger": deger, "not": aciklama})
-    st.divider()
     c1, c2, c3 = st.columns(3)
     with c1:
         u_tipi = st.radio("Ücret Tipi", ["Net", "Brüt"],
