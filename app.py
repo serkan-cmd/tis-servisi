@@ -427,14 +427,14 @@ with tab1:
 
         st.subheader("📈 Dinamik Zam Planlaması")
 
-# 1. Kaç dönem zam girileceğini seçiyoruz
-zam_donem_sayisi = st.number_input("Kaç Farklı Zam Dönemi Var?", min_value=1, max_value=36, value=2, key="n_donem_sayisi")
+        # 1. Kaç dönem zam girileceğini seçiyoruz
+        zam_donem_sayisi = st.number_input("Kaç Farklı Zam Dönemi Var?", min_value=1, max_value=36, value=2, key="n_donem_sayisi")
 
-# zam_verileri listesini session_state'e bağlıyoruz
-if "s_zam_verileri" not in st.session_state:
-    st.session_state["s_zam_verileri"] = []
+        # zam_verileri listesini session_state'e bağlıyoruz
+        if "s_zam_verileri" not in st.session_state:
+            st.session_state["s_zam_verileri"] = []
 
-yeni_zamlar = []
+        yeni_zamlar = []
 
 # DÖNGÜ BAŞLIYOR: Altındaki tüm kodlar bir TAB (4 boşluk) içeride olmalı
 for i in range(int(zam_donem_sayisi)):
