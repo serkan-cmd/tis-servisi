@@ -427,14 +427,55 @@ with tab1:
 
         st.subheader("📈 Dinamik Zam Planlaması")
 
-        # 1. Kaç dönem zam girileceğini seçiyoruz
-        zam_donem_sayisi = st.number_input("Kaç Farklı Zam Dönemi Var?", min_value=1, max_value=36, value=2, key="n_donem_sayisi")
+zam_donem_sayisi = st.number_input("Kaç Farklı Zam Dönemi Var?", min_value=1, max_value=36, value=2, key="n_donem_sayisi")
 
-        # zam_verileri listesini session_state'e bağlıyoruz
-        if "s_zam_verileri" not in st.session_state:
-            st.session_state["s_zam_verileri"] = []
+yeni_zamlar = []
 
-        yeni_zamlar = []
+for i in range(int(zam_donem_sayisi)):
+    with st.container(border=True):
+        st.markdown(f"#### 📅 {i+1}. Zam Dönemi")
+        
+        c_t1, c_t2, c_t3 = st.columns([1, 1, 2])
+        with c_t1: z_yil = st.selectbox(f"Yıl", [2024, 2025, 2026, 2027, 2028], key=f"z_yil_{i}")
+        with c_t2: z_ay = st.selectbox(f"Ay", ["Ocak", "Şubat", "Mart", "Nisan", "Mayıs", "Haziran", "Temmuz", "Ağustos", "Eylül", "Ekim", "Kasım", "Aralık"], key=f"z_ay_{i}")
+        with c_t3: z_donem_not = st.text_input("Not", key=f"z_not_{i}")
+
+        # --- YENİ: BAĞLI/BAĞIMSIZ SEÇENEĞİ ---
+        hesap_tipi = st.radio(f"{i+1}. Dönem Zam Uygulama Biçimi", 
+                              ["Birbirine Bağlı (Bileşik)", "Mevcut Ücrete Ayır Ayrı (Toplamsal)"], 
+                              key=f"h_tipi_{i}", horizontal=True)
+
+        kalem_sayisi = st.number_input(f"Zam Kalemi Sayısı", min_value=1, max_value=5, value=1, key=f"k_sayisi_{i}")
+        
+        donem_kalemleri = []
+        for j in range(int(kalem_sayisi)):
+            col1, col2, col3, col4 = st.columns([1.5, 2, 1.5, 1.5])
+            with col1:
+                k_tip = st.selectbox("Tip", ["Yüzde (%)", "Maktu (TL)"], key=f"k_tip_{i}_{j}")
+            with col2:
+                k_val = st.number_input("Tutar/Oran", min_value=0.0, step=0.1, key=f"k_val_{i}_{j}")
+            with col3:
+                k_kidem_durum = st.selectbox("Kapsam", ["Sabit", "Kıdeme Bağlı"], key=f"k_kidem_{i}_{j}")
+            with col4:
+                if k_kidem_durum == "Kıdeme Bağlı":
+                    k_ort_kidem = st.number_input("Ort. Kıdem (Yıl)", min_value=0.0, value=10.0, key=f"k_ort_kidem_{i}_{j}")
+                else:
+                    k_ort_kidem = 1 # Sabit ise çarpan 1'dir
+            
+            donem_kalemleri.append({
+                "tip": k_tip, 
+                "deger": k_val, 
+                "kidemli": k_kidem_durum == "Kıdeme Bağlı",
+                "ort_kidem": k_ort_kidem
+            })
+
+        yeni_zamlar.append({
+            "yil": z_yil, "ay": z_ay, "not": z_donem_not,
+            "hesap_tipi": hesap_tipi,
+            "kalemler": donem_kalemleri
+        })
+
+st.session_state["s_zam_verileri"] = yeni_zamlar
 
 # DÖNGÜ BAŞLIYOR: Altındaki tüm kodlar bir TAB (4 boşluk) içeride olmalı
 for i in range(int(zam_donem_sayisi)):
@@ -529,24 +570,43 @@ with tab2:
 
     # --- TAB 2 HESAPLAMA MOTORU GÜNCELLEME ---
     bugun = datetime.now().date()
-    guncel_ana_maas = u_tutar 
-    ay_map = {"Ocak": 1, "Şubat": 2, "Mart": 3, "Nisan": 4, "Mayıs": 5, "Haziran": 6, 
-              "Temmuz": 7, "Ağustos": 8, "Eylül": 9, "Ekim": 10, "Kasım": 11, "Aralık": 12}
+guncel_ana_maas = u_tutar 
+ay_map = {"Ocak": 1, "Şubat": 2, "Mart": 3, "Nisan": 4, "Mayıs": 5, "Haziran": 6, 
+          "Temmuz": 7, "Ağustos": 8, "Eylül": 9, "Ekim": 10, "Kasım": 11, "Aralık": 12}
 
-    for donem in st.session_state.get("s_zam_verileri", []):
-        zam_tarihi = datetime(int(donem["yil"]), ay_map[donem["ay"]], 1).date()
+for donem in st.session_state.get("s_zam_verileri", []):
+    zam_tarihi = datetime(int(donem["yil"]), ay_map[donem["ay"]], 1).date()
     
-        # Sadece bugün ve gelecek zamları hesapla
-        if zam_tarihi >= bugun:
-            # Bu dönem içindeki her bir kalemi sırayla uygula
-            for kalem in donem["kalemler"]:
-                if kalem["tip"] == "Yüzde (%)" and kalem["deger"] > 0:
-                    guncel_ana_maas *= (1 + (kalem["deger"] / 100))
-                elif kalem["tip"] == "Maktu (TL)" and kalem["deger"] > 0:
-                    guncel_ana_maas += kalem["deger"]
+    if zam_tarihi >= bugun:
+        donem_toplam_artisi = 0.0
+        gecici_maas = guncel_ana_maas # Bağlı hesaplama için
+        
+        for kalem in donem["kalemler"]:
+            # 1. Kıdem etkisini hesapla
+            # Eğer kıdemli ise: %2 x 10 yıl = %20 veya 100 TL x 10 yıl = 1000 TL
+            etkili_deger = kalem["deger"] * kalem["ort_kidem"] if kalem["kidemli"] else kalem["deger"]
+            
+            if donem["hesap_tipi"] == "Birbirine Bağlı (Bileşik)":
+                # Her kalem bir öncekinin üzerine biner
+                if kalem["tip"] == "Yüzde (%)":
+                    gecici_maas *= (1 + (etkili_deger / 100))
+                else:
+                    gecici_maas += etkili_deger
+            else:
+                # Her kalem ana maaş üzerinden hesaplanır ve toplanır
+                if kalem["tip"] == "Yüzde (%)":
+                    donem_toplam_artisi += (guncel_ana_maas * (etkili_deger / 100))
+                else:
+                    donem_toplam_artisi += etkili_deger
+        
+        # Dönem sonu maaş güncellemesi
+        if donem["hesap_tipi"] == "Birbirine Bağlı (Bileşik)":
+            guncel_ana_maas = gecici_maas
+        else:
+            guncel_ana_maas += donem_toplam_artisi
 
-    a_brut = guncel_ana_maas
-    g_brut = a_brut / 30 
+a_brut = guncel_ana_maas
+g_brut = a_brut / 30 
     # ----------------------------------------------
 
     st.markdown("### 🎁 Sosyal Yardımlar")
