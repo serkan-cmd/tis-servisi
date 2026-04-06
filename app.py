@@ -519,7 +519,8 @@ with tab2:
     # --- HESAPLAMA DÖNGÜSÜ (Hizalama Düzeltildi) ---
     guncel_ana_maas = u_tutar 
 
-    for zam in zam_verileri:
+    # Tab 1'de oluşturduğumuz listeyi kullanıyoruz
+    for zam in st.session_state.get("s_zam_verileri", []):
         if zam["deger"] > 0:
             if zam["tip"] == "Yüzde (%)":
                 guncel_ana_maas = guncel_ana_maas * (1 + (zam["deger"] / 100))
