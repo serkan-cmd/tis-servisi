@@ -474,7 +474,7 @@ for i in range(int(zam_donem_sayisi)):
         })
 
 # DÖNGÜ BİTTİ: Kaydı döngüden çıkınca (en dış hizada) yapıyoruz
-st.session_state["s_zam_verileri"] = yeni_zamlar
+    st.session_state["s_zam_verileri"] = yeni_zamlar
 
 # Bu listeyi tüm sayfada kullanabilmek için session_state'e kaydediyoruz
     st.session_state["s_zam_verileri"] = yeni_zamlar
