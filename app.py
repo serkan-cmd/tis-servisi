@@ -425,40 +425,53 @@ with tab1:
             else:
                 st.success(f"✅ {round(fark/365,1)} yıl ({fark} gün)")
 
-        st.subheader("📈 Zam Dönemleri")
+        st.subheader("📈 Dinamik Zam Planlaması")
         # Kaç dönem zam girileceğini seçiyoruz
-        zam_sayisi = st.number_input("Toplam Zam Dönemi Sayısı", min_value=1, max_value=36, value=2)
+        zam_donem_sayisi = st.number_input("Kaç Farklı Zam Dönemi Var?", min_value=1, max_value=36, value=2, key="n_donem_sayisi")
         
         # zam_verileri listesini session_state'e bağlıyoruz ki sekmeler arası veri kaybolmasın
         if "s_zam_verileri" not in st.session_state:
             st.session_state["s_zam_verileri"] = []
 
         yeni_zamlar = []
-        for i in range(int(zam_sayisi)):
-            with st.container(border=True):
-                col_tarih, col_yuzde, col_maktu, col_not = st.columns([1.5, 1, 1, 2.5])
+        for i in range(int(zam_donem_sayisi)):
+    with st.container(border=True):
+        st.markdown(f"#### 📅 {i+1}. Zam Dönemi Ayarları")
         
-                with col_tarih:
-                    z_yil = st.selectbox(f"{i+1}. Zam Yılı", [2024, 2025, 2026, 2027, 2028], key=f"z_yil_{i}")
-                    z_ay = st.selectbox(f"{i+1}. Zam Ayı", ["Ocak", "Şubat", "Mart", "Nisan", "Mayıs", "Haziran", "Temmuz", "Ağustos", "Eylül", "Ekim", "Kasım", "Aralık"], key=f"z_ay_{i}")
-        
-                with col_yuzde:
-                    z_pct = st.number_input(f"Yüzde (%)", min_value=0.0, step=0.1, key=f"z_pct_{i}")
-            
-                with col_maktu:
-                    z_maktu = st.number_input(f"Maktu (TL)", min_value=0.0, step=100.0, key=f"z_maktu_{i}")
-            
-                with col_not:
-                    z_not = st.text_input(f"Dönem Açıklaması", placeholder="Örn: %5 Refah + 5000 TL Seyyanen", key=f"z_not_{i}")
+        # Dönem Tarih Seçimi
+        c1, c2, c3 = st.columns([1, 1, 2])
+        with c1:
+            z_yil = st.selectbox(f"Yıl", [2024, 2025, 2026, 2027, 2028], key=f"z_yil_{i}")
+        with c2:
+            z_ay = st.selectbox(f"Ay", ["Ocak", "Şubat", "Mart", "Nisan", "Mayıs", "Haziran", "Temmuz", "Ağustos", "Eylül", "Ekim", "Kasım", "Aralık"], key=f"z_ay_{i}")
+        with c3:
+            z_donem_not = st.text_input("Dönem Genel Notu", placeholder="Örn: 1. Yıl 1. Altı Ay", key=f"z_not_{i}")
 
-                # Girilen her şeyi bir listeye topluyoruz
-                yeni_zamlar.append({
-                    "yil": z_yil, 
-                    "ay": z_ay, 
-                    "yuzde": z_pct, 
-                    "maktu": z_maktu, 
-                    "not": z_not
-                })
+        # 2. O dönem içinde kaç ayrı kalem zam olduğu (Senin istediğin 1-5 arası seçim)
+        kalem_sayisi = st.number_input(f"{i+1}. Dönemdeki Zam Kalemi Sayısı", min_value=1, max_value=5, value=1, key=f"k_sayisi_{i}")
+        
+        donem_kalemleri = []
+        
+        # İç Döngü: Kalemleri oluşturur
+        for j in range(int(kalem_sayisi)):
+            col_tip, col_deger = st.columns([1, 2])
+            with col_tip:
+                k_tip = st.selectbox(f"{j+1}. Kalem Tipi", ["Yüzde (%)", "Maktu (TL)"], key=f"k_tip_{i}_{j}")
+            with col_deger:
+                k_val = st.number_input(f"{j+1}. Kalem Tutarı/Oranı", min_value=0.0, step=0.1, key=f"k_val_{i}_{j}")
+            
+            donem_kalemleri.append({"tip": k_tip, "deger": k_val})
+
+        # Tüm veriyi yapısal olarak topluyoruz
+        yeni_zamlar.append({
+            "yil": z_yil, 
+            "ay": z_ay, 
+            "not": z_donem_not,
+            "kalemler": donem_kalemleri # Kalemleri liste olarak içine koyduk
+        })
+
+# Session state kaydı
+st.session_state["s_zam_verileri"] = yeni_zamlar
 
 # Bu listeyi tüm sayfada kullanabilmek için session_state'e kaydediyoruz
     st.session_state["s_zam_verileri"] = yeni_zamlar
