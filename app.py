@@ -528,25 +528,25 @@ with tab2:
                                    key="ek2_per_w")
 
     # --- TAB 2 HESAPLAMA MOTORU GÜNCELLEME ---
-bugun = datetime.now().date()
-guncel_ana_maas = u_tutar 
-ay_map = {"Ocak": 1, "Şubat": 2, "Mart": 3, "Nisan": 4, "Mayıs": 5, "Haziran": 6, 
-          "Temmuz": 7, "Ağustos": 8, "Eylül": 9, "Ekim": 10, "Kasım": 11, "Aralık": 12}
+    bugun = datetime.now().date()
+    guncel_ana_maas = u_tutar 
+    ay_map = {"Ocak": 1, "Şubat": 2, "Mart": 3, "Nisan": 4, "Mayıs": 5, "Haziran": 6, 
+              "Temmuz": 7, "Ağustos": 8, "Eylül": 9, "Ekim": 10, "Kasım": 11, "Aralık": 12}
 
-for donem in st.session_state.get("s_zam_verileri", []):
-    zam_tarihi = datetime(int(donem["yil"]), ay_map[donem["ay"]], 1).date()
+    for donem in st.session_state.get("s_zam_verileri", []):
+        zam_tarihi = datetime(int(donem["yil"]), ay_map[donem["ay"]], 1).date()
     
-    # Sadece bugün ve gelecek zamları hesapla
-    if zam_tarihi >= bugun:
-        # Bu dönem içindeki her bir kalemi sırayla uygula
-        for kalem in donem["kalemler"]:
-            if kalem["tip"] == "Yüzde (%)" and kalem["deger"] > 0:
-                guncel_ana_maas *= (1 + (kalem["deger"] / 100))
-            elif kalem["tip"] == "Maktu (TL)" and kalem["deger"] > 0:
-                guncel_ana_maas += kalem["deger"]
+        # Sadece bugün ve gelecek zamları hesapla
+        if zam_tarihi >= bugun:
+            # Bu dönem içindeki her bir kalemi sırayla uygula
+            for kalem in donem["kalemler"]:
+                if kalem["tip"] == "Yüzde (%)" and kalem["deger"] > 0:
+                    guncel_ana_maas *= (1 + (kalem["deger"] / 100))
+                elif kalem["tip"] == "Maktu (TL)" and kalem["deger"] > 0:
+                    guncel_ana_maas += kalem["deger"]
 
-a_brut = guncel_ana_maas
-g_brut = a_brut / 30 
+    a_brut = guncel_ana_maas
+    g_brut = a_brut / 30 
     # ----------------------------------------------
 
     st.markdown("### 🎁 Sosyal Yardımlar")
