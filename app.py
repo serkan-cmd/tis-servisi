@@ -485,8 +485,21 @@ with tab2:
                                    index=["Aylık", "Yıllık"].index(st.session_state["s_ek2_per"]),
                                    key="ek2_per_w")
 
-    a_brut = maas_brutlestir(u_tutar, u_tipi, secilen_oran)
-    g_brut = a_brut / 30
+    guncel_ana_maas = u_tutar 
+
+# Zam dönemlerini tek tek gezerek maaşı artırıyoruz
+for zam in zam_verileri:
+    if zam["deger"] > 0:
+        if zam["tip"] == "Yüzde (%)":
+            # Yüzdesel artış: Mevcut maaş * (1 + oran/100)
+            guncel_ana_maas = guncel_ana_maas * (1 + (zam["deger"] / 100))
+        else:
+            # Maktu artış: Mevcut maaş + sabit TL
+            guncel_ana_maas = guncel_ana_maas + zam["deger"]
+
+# Nihai brüt maaş artık zamların uygulanmış halidir
+a_brut = guncel_ana_maas 
+g_brut = a_brut / 30 # Günlük brüt (sosyal yardımlar için)
 
     st.markdown("### 🎁 Sosyal Yardımlar")
     cs1, cs2 = st.columns(2)
