@@ -461,7 +461,7 @@ with tab1:
                 })
 
 # Bu listeyi tüm sayfada kullanabilmek için session_state'e kaydediyoruz
-st.session_state["s_zam_verileri"] = yeni_zamlar
+    st.session_state["s_zam_verileri"] = yeni_zamlar
 
     # session_state güncelle
     st.session_state["s_isyeri"] = isyeri_adi
