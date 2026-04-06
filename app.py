@@ -427,7 +427,7 @@ with tab1:
 
         st.subheader("📈 Zam Dönemleri")
         # Kaç dönem zam girileceğini seçiyoruz
-        zam_sayisi = st.number_input("Toplam Zam Dönemi Sayısı", min_value=1, max_value=24, value=2)
+        zam_sayisi = st.number_input("Toplam Zam Dönemi Sayısı", min_value=1, max_value=36, value=2)
         
         # zam_verileri listesini session_state'e bağlıyoruz ki sekmeler arası veri kaybolmasın
         if "s_zam_verileri" not in st.session_state:
@@ -435,19 +435,33 @@ with tab1:
 
         yeni_zamlar = []
         for i in range(int(zam_sayisi)):
-            z_col1, z_col2, z_col3 = st.columns([1, 1, 1])
-            with z_col1:
-                z_yil = st.selectbox(f"{i+1}. Zam Yılı", [2024, 2025, 2026, 2027], key=f"z_yil_{i}")
-            with z_col2:
-                z_ay = st.selectbox(f"{i+1}. Zam Ayı", ["Ocak", "Şubat", "Mart", "Nisan", "Mayıs", "Haziran", "Temmuz", "Ağustos", "Eylül", "Ekim", "Kasım", "Aralık"], key=f"z_ay_{i}")
-            with z_col3:
-                z_tip = st.selectbox(f"{i+1}. Tip", ["Yüzde (%)", "Maktu (TL)"], key=f"z_tip_{i}")
-            
-            z_deger = st.number_input(f"{i+1}. Tutar/Oran", min_value=0.0, key=f"z_val_{i}")
-            yeni_zamlar.append({"yil": z_yil, "ay": z_ay, "tip": z_tip, "deger": z_deger})
-            st.divider()
+            with st.container(border=True):
+                col_tarih, col_yuzde, col_maktu, col_not = st.columns([1.5, 1, 1, 2.5])
         
-        st.session_state["s_zam_verileri"] = yeni_zamlar
+                with col_tarih:
+                    z_yil = st.selectbox(f"{i+1}. Zam Yılı", [2024, 2025, 2026, 2027, 2028], key=f"z_yil_{i}")
+                    z_ay = st.selectbox(f"{i+1}. Zam Ayı", ["Ocak", "Şubat", "Mart", "Nisan", "Mayıs", "Haziran", "Temmuz", "Ağustos", "Eylül", "Ekim", "Kasım", "Aralık"], key=f"z_ay_{i}")
+        
+                with col_yuzde:
+                    z_pct = st.number_input(f"Yüzde (%)", min_value=0.0, step=0.1, key=f"z_pct_{i}")
+            
+                with col_maktu:
+                    z_maktu = st.number_input(f"Maktu (TL)", min_value=0.0, step=100.0, key=f"z_maktu_{i}")
+            
+                with col_not:
+                    z_not = st.text_input(f"Dönem Açıklaması", placeholder="Örn: %5 Refah + 5000 TL Seyyanen", key=f"z_not_{i}")
+
+                # Girilen her şeyi bir listeye topluyoruz
+                yeni_zamlar.append({
+                    "yil": z_yil, 
+                    "ay": z_ay, 
+                    "yuzde": z_pct, 
+                    "maktu": z_maktu, 
+                    "not": z_not
+                })
+
+# Bu listeyi tüm sayfada kullanabilmek için session_state'e kaydediyoruz
+st.session_state["s_zam_verileri"] = yeni_zamlar
 
     # session_state güncelle
     st.session_state["s_isyeri"] = isyeri_adi
