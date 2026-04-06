@@ -721,6 +721,7 @@ with tab2:
                 baslik_guncelle(sheet)
                 tis_bas_str = st.session_state["s_tis_bas"].strftime("%d/%m/%Y")
                 tis_bit_str = st.session_state["s_tis_bit"].strftime("%d/%m/%Y")
+                zam_ozet_str = " | ".join([f"{z['ay']} {z['yil']}: {z['deger']} {z['tip']}" for z in zam_verileri])
                 row = [
                     datetime.now().strftime("%d/%m/%Y %H:%M"),
                     st.session_state["active_user"],
@@ -735,11 +736,11 @@ with tab2:
                     ", ".join(st.session_state["s_subeler"]),
                     st.session_state["s_uye"],
                     st.session_state["s_calisan"],
-                    tis_bas_str, tis_bit_str,
+                    tis_bas_str, 
+                    tis_bit_str,
                     zam_ozet_str, 
                     u_tipi, 
                     sf(u_tutar),
-                    u_tipi, sf(u_tutar),
                     ek1_mod, sf(ek1_val), ek1_per,
                     ek2_mod, sf(ek2_val), ek2_per,
                     gida_tip, sf(gida_val),
