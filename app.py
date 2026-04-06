@@ -516,8 +516,7 @@ with tab2:
 
     # s_zam_verileri içindeki her bir zam dönemini geziyoruz
     for zam in st.session_state.get("s_zam_verileri", []):
-        # 1. Önce o dönemdeki yüzdesel artışı uygula
-        # Not: Artık 'deger' değil 'yuzde' anahtarını kullanıyoruz
+        # Yüzdesel zam uygula
         if zam.get("yuzde", 0) > 0:
             guncel_ana_maas = guncel_ana_maas * (1 + (zam["yuzde"] / 100))
     
@@ -526,7 +525,6 @@ with tab2:
         if zam.get("maktu", 0) > 0:
             guncel_ana_maas = guncel_ana_maas + zam["maktu"]
 
-    # Sonuçları brüt değişkenlerine aktar
     a_brut = guncel_ana_maas 
     g_brut = a_brut / 30 
     # ----------------------------------------------
@@ -738,7 +736,7 @@ with tab2:
                 tis_bas_str = st.session_state["s_tis_bas"].strftime("%d/%m/%Y")
                 tis_bit_str = st.session_state["s_tis_bit"].strftime("%d/%m/%Y")
                 zam_listesi = st.session_state.get("s_zam_verileri", [])
-                zam_ozet_str = " | ".join([f"{z['ay']} {z['yil']}: {z['deger']} {z['tip']}" for z in zam_verileri])
+                zam_ozet_str = " | ".join([f"{z['ay']} {z['yil']}: %{z.get('yuzde',0)} + {z.get('maktu',0)}TL" for z in st.session_state.get("s_zam_verileri", [])])
                 row = [
                     datetime.now().strftime("%d/%m/%Y %H:%M"),
                     st.session_state["active_user"],
