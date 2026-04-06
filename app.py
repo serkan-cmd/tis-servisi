@@ -426,15 +426,18 @@ with tab1:
                 st.success(f"✅ {round(fark/365,1)} yıl ({fark} gün)")
 
         st.subheader("📈 Dinamik Zam Planlaması")
-        # Kaç dönem zam girileceğini seçiyoruz
-        zam_donem_sayisi = st.number_input("Kaç Farklı Zam Dönemi Var?", min_value=1, max_value=36, value=2, key="n_donem_sayisi")
-        
-        # zam_verileri listesini session_state'e bağlıyoruz ki sekmeler arası veri kaybolmasın
-        if "s_zam_verileri" not in st.session_state:
-            st.session_state["s_zam_verileri"] = []
 
-        yeni_zamlar = []
-        for i in range(int(zam_donem_sayisi)):
+# 1. Kaç dönem zam girileceğini seçiyoruz
+zam_donem_sayisi = st.number_input("Kaç Farklı Zam Dönemi Var?", min_value=1, max_value=36, value=2, key="n_donem_sayisi")
+
+# zam_verileri listesini session_state'e bağlıyoruz
+if "s_zam_verileri" not in st.session_state:
+    st.session_state["s_zam_verileri"] = []
+
+yeni_zamlar = []
+
+# DÖNGÜ BAŞLIYOR: Altındaki tüm kodlar bir TAB (4 boşluk) içeride olmalı
+for i in range(int(zam_donem_sayisi)):
     with st.container(border=True):
         st.markdown(f"#### 📅 {i+1}. Zam Dönemi Ayarları")
         
@@ -447,12 +450,12 @@ with tab1:
         with c3:
             z_donem_not = st.text_input("Dönem Genel Notu", placeholder="Örn: 1. Yıl 1. Altı Ay", key=f"z_not_{i}")
 
-        # 2. O dönem içinde kaç ayrı kalem zam olduğu (Senin istediğin 1-5 arası seçim)
+        # O dönem içindeki kalem sayısı
         kalem_sayisi = st.number_input(f"{i+1}. Dönemdeki Zam Kalemi Sayısı", min_value=1, max_value=5, value=1, key=f"k_sayisi_{i}")
         
         donem_kalemleri = []
         
-        # İç Döngü: Kalemleri oluşturur
+        # İÇ DÖNGÜ: Kalemleri oluşturur
         for j in range(int(kalem_sayisi)):
             col_tip, col_deger = st.columns([1, 2])
             with col_tip:
@@ -462,15 +465,15 @@ with tab1:
             
             donem_kalemleri.append({"tip": k_tip, "deger": k_val})
 
-        # Tüm veriyi yapısal olarak topluyoruz
+        # Veriyi listeye ekle (Hala dış döngünün içindeyiz)
         yeni_zamlar.append({
             "yil": z_yil, 
             "ay": z_ay, 
             "not": z_donem_not,
-            "kalemler": donem_kalemleri # Kalemleri liste olarak içine koyduk
+            "kalemler": donem_kalemleri
         })
 
-# Session state kaydı
+# DÖNGÜ BİTTİ: Kaydı döngüden çıkınca (en dış hizada) yapıyoruz
 st.session_state["s_zam_verileri"] = yeni_zamlar
 
 # Bu listeyi tüm sayfada kullanabilmek için session_state'e kaydediyoruz
