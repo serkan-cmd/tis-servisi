@@ -529,16 +529,21 @@ with tab2:
     # --- HESAPLAMA DÖNGÜSÜ (Hizalama Düzeltildi) ---
     guncel_ana_maas = u_tutar 
 
-    # Tab 1'de oluşturduğumuz listeyi kullanıyoruz
-    for zam in st.session_state.get("s_zam_verileri", []):
-        if zam["deger"] > 0:
-            if zam["tip"] == "Yüzde (%)":
-                guncel_ana_maas = guncel_ana_maas * (1 + (zam["deger"] / 100))
-            else:
-                guncel_ana_maas = guncel_ana_maas + zam["deger"]
+# s_zam_verileri içindeki her bir zam dönemini geziyoruz
+for zam in st.session_state.get("s_zam_verileri", []):
+    # 1. Önce o dönemdeki yüzdesel artışı uygula
+    # Not: Artık 'deger' değil 'yuzde' anahtarını kullanıyoruz
+    if zam.get("yuzde", 0) > 0:
+        guncel_ana_maas = guncel_ana_maas * (1 + (zam["yuzde"] / 100))
+    
+    # 2. Sonra o dönemdeki maktu/seyyanen artışı ekle
+    # Not: Artık 'deger' değil 'maktu' anahtarını kullanıyoruz
+    if zam.get("maktu", 0) > 0:
+        guncel_ana_maas = guncel_ana_maas + zam["maktu"]
 
-    a_brut = guncel_ana_maas 
-    g_brut = a_brut / 30 
+# Sonuçları brüt değişkenlerine aktar
+a_brut = guncel_ana_maas 
+g_brut = a_brut / 30 
     # ----------------------------------------------
 
     st.markdown("### 🎁 Sosyal Yardımlar")
