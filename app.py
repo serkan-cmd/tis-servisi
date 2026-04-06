@@ -314,17 +314,17 @@ with tab2:
                     return val if (val != "" and val is not None) else default
 
                 def rf(col, default=0.0):
-                    """Sheets'ten Türkçe formatlı sayıyı float'a çevirir (86188,68 → 86188.68)."""
+                    """Sheets'ten noktalı string'i float'a çevirir: '86188.68' → 86188.68"""
                     try:
                         val = str(r.get(col, "")).strip()
                         if val == "" or val == "None":
                             return float(default)
-                        if "," in val and "." in val:
+                        # Eski kayıtlarda virgüllü format gelebilir, onu da handle et
+                        if "," in val and "." not in val:
+                            val = val.replace(",", ".")
+                        elif "," in val and "." in val:
                             # "86.188,68" → binlik nokta, ondalık virgül
                             val = val.replace(".", "").replace(",", ".")
-                        elif "," in val:
-                            # "86188,68" → sadece ondalık virgül
-                            val = val.replace(",", ".")
                         return float(val)
                     except Exception:
                         return float(default)
@@ -716,6 +716,13 @@ with tab1:
                 _tis_bas_str = _tis_bas.strftime("%d/%m/%Y") if hasattr(_tis_bas, 'strftime') else str(_tis_bas)
                 _tis_bit_str = _tis_bit.strftime("%d/%m/%Y") if hasattr(_tis_bit, 'strftime') else str(_tis_bit)
 
+                def sf(val):
+                    """Float'ı her zaman noktalı string olarak kaydeder: 86188.68"""
+                    try:
+                        return f"{float(val):.2f}"
+                    except Exception:
+                        return "0.00"
+
                 kayit_row = [
                     datetime.now().strftime("%d/%m/%Y %H:%M"),
                     st.session_state["active_user"],
@@ -726,27 +733,27 @@ with tab1:
                     _uye_sayisi,
                     _grev_yasagi,
                     st.session_state["ss_toplam_calisan"],
-                    u_tipi, u_tutar,
-                    ek_mod, ek_val, ek_per,
-                    ek2_mod, ek2_val, ek2_per,
-                    g_tip, gida_val,
-                    y_tip, yakacak_val,
-                    giy_tip, giyim_val,
-                    ayk_tip, ayakkabi_val,
-                    yil_tip, yilbasi_val,
-                    iz_m, iz_t, iz_v,
-                    ba_m, ba_t, ba_v,
-                    pr_m, pr_t, pr_v,
+                    u_tipi, sf(u_tutar),
+                    ek_mod, sf(ek_val), ek_per,
+                    ek2_mod, sf(ek2_val), ek2_per,
+                    g_tip, sf(gida_val),
+                    y_tip, sf(yakacak_val),
+                    giy_tip, sf(giyim_val),
+                    ayk_tip, sf(ayakkabi_val),
+                    yil_tip, sf(yilbasi_val),
+                    iz_m, iz_t, sf(iz_v),
+                    ba_m, ba_t, sf(ba_v),
+                    pr_m, pr_t, sf(pr_v),
                     ikramiye,
-                    str(yasal_aile), str(muafiyet_aile_tik), maktu_aile,
-                    str(yasal_cocuk_tik), str(muafiyet_cocuk_tik), maktu_cocuk_birim,
-                    v_hesap_tipi, v_mod, v_val,
-                    g_hesap_tipi, g_mod, g_val_gece,
-                    ek_ozel_tip, ek_ozel_mod, ek_ozel_val,
-                    str(denge_aktif), st.session_state["ss_denge_oran"],
-                    a_brut,
-                    toplam_sosyal,
-                    t_maliyet
+                    str(yasal_aile), str(muafiyet_aile_tik), sf(maktu_aile),
+                    str(yasal_cocuk_tik), str(muafiyet_cocuk_tik), sf(maktu_cocuk_birim),
+                    v_hesap_tipi, v_mod, sf(v_val),
+                    g_hesap_tipi, g_mod, sf(g_val_gece),
+                    ek_ozel_tip, ek_ozel_mod, sf(ek_ozel_val),
+                    str(denge_aktif), sf(st.session_state["ss_denge_oran"]),
+                    sf(a_brut),
+                    sf(toplam_sosyal),
+                    sf(t_maliyet)
                 ]
 
                 sheet.append_row(kayit_row)
