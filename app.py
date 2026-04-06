@@ -464,6 +464,7 @@ with tab2:
         u_tipi = st.radio("Ücret Tipi", ["Net", "Brüt"],
                           index=["Net", "Brüt"].index(st.session_state["s_u_tipi"]))
         u_tutar = st.number_input("Çıplak Ücret", value=st.session_state["s_u_tutar"], min_value=0.0)
+    
     with c2:
         with st.container(border=True):
             st.caption("Ek Ödeme 1")
@@ -485,21 +486,19 @@ with tab2:
                                    index=["Aylık", "Yıllık"].index(st.session_state["s_ek2_per"]),
                                    key="ek2_per_w")
 
+    # --- HESAPLAMA DÖNGÜSÜ (Hizalama Düzeltildi) ---
     guncel_ana_maas = u_tutar 
 
-# Zam dönemlerini tek tek gezerek maaşı artırıyoruz
-for zam in zam_verileri:
-    if zam["deger"] > 0:
-        if zam["tip"] == "Yüzde (%)":
-            # Yüzdesel artış: Mevcut maaş * (1 + oran/100)
-            guncel_ana_maas = guncel_ana_maas * (1 + (zam["deger"] / 100))
-        else:
-            # Maktu artış: Mevcut maaş + sabit TL
-            guncel_ana_maas = guncel_ana_maas + zam["deger"]
+    for zam in zam_verileri:
+        if zam["deger"] > 0:
+            if zam["tip"] == "Yüzde (%)":
+                guncel_ana_maas = guncel_ana_maas * (1 + (zam["deger"] / 100))
+            else:
+                guncel_ana_maas = guncel_ana_maas + zam["deger"]
 
-# Nihai brüt maaş artık zamların uygulanmış halidir
-a_brut = guncel_ana_maas 
-g_brut = a_brut / 30 # Günlük brüt (sosyal yardımlar için)
+    a_brut = guncel_ana_maas 
+    g_brut = a_brut / 30 
+    # ----------------------------------------------
 
     st.markdown("### 🎁 Sosyal Yardımlar")
     cs1, cs2 = st.columns(2)
