@@ -512,18 +512,32 @@ with tab2:
                                    key="ek2_per_w")
 
     # --- HESAPLAMA DÖNGÜSÜ (Hizalama Düzeltildi) ---
+    bugun = datetime.now().date()
     guncel_ana_maas = u_tutar 
+
+    # Ay isimlerini sayıya çeviren yardımcı sözlük (Tarih karşılaştırması için)
+    ay_map = {
+        "Ocak": 1, "Şubat": 2, "Mart": 3, "Nisan": 4, "Mayıs": 5, "Haziran": 6,
+        "Temmuz": 7, "Ağustos": 8, "Eylül": 9, "Ekim": 10, "Kasım": 11, "Aralık": 12
+    }
 
     # s_zam_verileri içindeki her bir zam dönemini geziyoruz
     for zam in st.session_state.get("s_zam_verileri", []):
-        # Yüzdesel zam uygula
-        if zam.get("yuzde", 0) > 0:
-            guncel_ana_maas = guncel_ana_maas * (1 + (zam["yuzde"] / 100))
-    
-        # 2. Sonra o dönemdeki maktu/seyyanen artışı ekle
-        # Not: Artık 'deger' değil 'maktu' anahtarını kullanıyoruz
-        if zam.get("maktu", 0) > 0:
-            guncel_ana_maas = guncel_ana_maas + zam["maktu"]
+        # Zam tarihini karşılaştırma için date objesine çeviriyoruz
+        zam_tarihi = datetime(int(zam["yil"]), ay_map[zam["ay"]], 1).date()
+        
+        # SADECE BUGÜN VEYA GELECEKTEKİ ZAMLARI UYGULA
+        if zam_tarihi >= bugun:
+            # 1. Yüzdesel zam uygula
+            if zam.get("yuzde", 0) > 0:
+                guncel_ana_maas = guncel_ana_maas * (1 + (zam["yuzde"] / 100))
+            
+            # 2. Maktu/seyyanen artışı ekle
+            if zam.get("maktu", 0) > 0:
+                guncel_ana_maas = guncel_ana_maas + zam["maktu"]
+        else:
+            # Geçmiş tarihlidir, sadece listelenir ama maaşı artırmaz
+            pass
 
     a_brut = guncel_ana_maas 
     g_brut = a_brut / 30 
