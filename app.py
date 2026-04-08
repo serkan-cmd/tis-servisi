@@ -566,7 +566,7 @@ with tab2:
             u_hesap_baz_maas = u_tutar
 
 # Artık hesaplama döngüsünde u_tutar yerine u_hesap_baz_maas kullanacağız
-guncel_ana_maas = u_hesap_baz_maas
+    guncel_ana_maas = u_hesap_baz_maas
     with c2:
         with st.container(border=True):
             st.caption("Ek Ödeme 1")
