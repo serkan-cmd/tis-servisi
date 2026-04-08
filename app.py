@@ -925,7 +925,7 @@ with tab3:
 
         st.subheader("🔍 İşyeri Karşılaştırması")
         if "İşyeri" in df3.columns:
-            secilen = st.selectbox("İşyeri Seç", df3["İşyeri"].dropna().unique().tolist())
+            secilen = st.selectbox("İşyeri Seç", df3["İşyeri"].dropna().unique().tolist(), key="tab3_isyeri_sec")
             if secilen:
                 sec_row = df3[df3["İşyeri"] == secilen].iloc[0]
                 genel_ort_maas = df3["Ana Maaş (Brüt)"].mean()
