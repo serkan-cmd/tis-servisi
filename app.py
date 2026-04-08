@@ -541,32 +541,9 @@ with tab2:
 
     c1, c2, c3 = st.columns(3)
     with c1:
-        u_tipi = st.radio("Ücret Tipi", ["Net", "Brüt"], 
+        u_tipi = st.radio("Ücret Tipi", ["Net", "Brüt"],
                           index=["Net", "Brüt"].index(st.session_state["s_u_tipi"]))
-        u_tutar = st.number_input("Çıplak Ücret", value=st.session_state["s_u_tutar"], min_value=0.0)
-
-        # Eğer ücret tipi "Net" ise vergi dilimi seçtiriyoruz
-        if u_tipi == "Net":
-            v_dilimi = st.selectbox("Geçerli Vergi Dilimi", 
-                                    ["1. Dilim (%15)", "2. Dilim (%20)", "3. Dilim (%27)", "4. Dilim (%35)"])
-        
-            # Formüllerin Uygulanması
-            if v_dilimi == "1. Dilim (%15)":
-                hesaplanan_brut = (u_tutar - 4462.03) / 0.71491
-            elif v_dilimi == "2. Dilim (%20)":
-                hesaplanan_brut = (u_tutar - 4788.45) / 0.67241
-            elif v_dilimi == "3. Dilim (%27)":
-                hesaplanan_brut = (u_tutar - 5865.8) / 0.61291
-            else: # 4. Dilim %35
-                hesaplanan_brut = (u_tutar - 5865.8) / 0.54491
-            
-            # Eğer net ücret asgari ücretin altındaysa veya negatif sonuç çıkarsa kontrolü
-            u_hesap_baz_maas = max(hesaplanan_brut, u_tutar) 
-        else:
-            u_hesap_baz_maas = u_tutar
-
-# Artık hesaplama döngüsünde u_tutar yerine u_hesap_baz_maas kullanacağız
-    guncel_ana_maas = u_hesap_baz_maas
+        u_tutar = st.number_input("Çıplak Ücret (Girilen Değer)", value=st.session_state["s_u_tutar"], min_value=0.0)
     with c2:
         with st.container(border=True):
             st.caption("Ek Ödeme 1")
