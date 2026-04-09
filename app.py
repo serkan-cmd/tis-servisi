@@ -197,8 +197,9 @@ def verileri_getir():
         client = gspread.authorize(creds)
         sheet = client.open_by_key(SHEET_KEY).sheet1
         data = sheet.get_all_records(
-            expected_headers=SHEET_HEADERS,
-            head=1)
+            expected_headers=SHEET_HEADERS,   # ← BU SATIRI EKLEYİN
+            head=1
+        )
         return pd.DataFrame(data)
     except Exception as e:
         st.error(f"Veri çekilemedi: {e}")
@@ -222,7 +223,7 @@ def ss(key, default):
 
 ss("s_isyeri", ""); ss("s_isyeri_tipi", "İşyeri"); ss("s_grev", "Grev Yasağı Yok")
 ss("s_yabanci", False); ss("s_ulke", "Türkiye"); ss("s_isv_sendika", "")
-ss("s_grup", "Genel Kimya"); ss("s_sektör", ""); ss("s_subeler", [])
+ss("s_sektor", "Genel Kimya"); ss("s_grup", ""); ss("s_subeler", [])
 ss("s_uye", 0); ss("s_calisan", 0)
 ss("s_tis_bas", datetime.now().date())
 ss("s_tis_bit", datetime.now().replace(year=datetime.now().year + 2).date())
