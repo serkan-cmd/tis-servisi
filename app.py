@@ -222,7 +222,7 @@ def ss(key, default):
 
 ss("s_isyeri", ""); ss("s_isyeri_tipi", "İşyeri"); ss("s_grev", "Grev Yasağı Yok")
 ss("s_yabanci", False); ss("s_ulke", "Türkiye"); ss("s_isv_sendika", "")
-ss("s_sektor", "Genel Kimya"); ss("s_grup", ""); ss("s_subeler", [])
+ss("s_grup", "Genel Kimya"); ss("s_sektör", ""); ss("s_subeler", [])
 ss("s_uye", 0); ss("s_calisan", 0)
 ss("s_tis_bas", datetime.now().date())
 ss("s_tis_bit", datetime.now().replace(year=datetime.now().year + 2).date())
