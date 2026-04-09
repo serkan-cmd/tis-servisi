@@ -151,6 +151,9 @@ def zam_planini_uygula(baslangic_maas, zam_listesi):
     bugun = datetime.now().date()
     guncel = float(baslangic_maas)
     for donem in zam_listesi:
+        # "Hesaba Kat" işaretlenmemişse bu dönemi tamamen atla
+        if not donem.get("uygula", False):
+            continue
         try:
             zam_tarihi = datetime(int(donem["yil"]), AY_MAP[donem["ay"]], 1).date()
         except Exception:
@@ -486,7 +489,14 @@ with tab1:
     yeni_zamlar = []
     for i in range(int(zam_donem_sayisi)):
         with st.container(border=True):
-            st.markdown(f"**{i+1}. Zam Dönemi**")
+            # Başlık satırı: dönem adı + uygula checkbox yan yana
+            hd1, hd2 = st.columns([3, 1])
+            with hd1:
+                st.markdown(f"**{i+1}. Zam Dönemi**")
+            with hd2:
+                z_uygula = st.checkbox("✅ Hesaba Kat", value=False, key=f"z_uygula_{i}",
+                                       help="Bu zammı maaş hesabına dahil etmek için işaretleyin.")
+
             ct1, ct2, ct3 = st.columns([1, 1, 2])
             with ct1:
                 z_yil = st.selectbox("Yıl", [2024, 2025, 2026, 2027, 2028], key=f"z_yil_{i}")
@@ -529,7 +539,8 @@ with tab1:
                 "ay": z_ay,
                 "not": z_not,
                 "hesap_tipi": hesap_tipi,
-                "kalemler": donem_kalemleri
+                "kalemler": donem_kalemleri,
+                "uygula": z_uygula          # ← yeni alan
             })
 
     st.session_state["s_zam_verileri"] = yeni_zamlar
@@ -542,7 +553,8 @@ with tab1:
                 for k in d["kalemler"]
             ])
             not_str = f" — {d['not']}" if d['not'] else ""
-            st.caption(f"• {d['ay']} {d['yil']}: {kalem_str}{not_str}")
+            durum = "✅ uygulanıyor" if d["uygula"] else "📋 kayıtlı (uygulanmıyor)"
+            st.caption(f"• {d['ay']} {d['yil']}: {kalem_str}{not_str} — {durum}")
 
 # ============================================================
 # TAB 2 — ÜCRET VE SOSYAL ÖDEMELER
@@ -581,8 +593,12 @@ with tab2:
     a_brut = zam_planini_uygula(maas_base, zam_listesi)
     g_brut = a_brut / 30
 
+    uygulanan = [d for d in zam_listesi if d.get("uygula", False)]
     if zam_listesi:
-        st.info(f"📊 Zam planı uygulandı → Güncel Ana Maaş: **{a_brut:,.2f} TL** (Girilen: {maas_base:,.2f} TL)")
+        if uygulanan:
+            st.info(f"📊 {len(uygulanan)} zam dönemi uygulandı → Güncel Ana Maaş: **{a_brut:,.2f} TL** (Girilen: {maas_base:,.2f} TL)")
+        else:
+            st.warning(f"📋 {len(zam_listesi)} zam dönemi kayıtlı ama hiçbiri 'Hesaba Kat' olarak işaretlenmemiş. Maaş girilen değer üzerinden hesaplanıyor: **{a_brut:,.2f} TL**")
 
     st.markdown("### 🎁 Sosyal Yardımlar")
     cs1, cs2 = st.columns(2)
