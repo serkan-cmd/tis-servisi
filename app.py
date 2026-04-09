@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 import io
+import json
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
 from datetime import datetime
@@ -38,21 +39,23 @@ SHEET_HEADERS = [
     "Ana Maaş Tipi", "Ana Maaş Tutar",
     "Ek Ödeme 1 Mod", "Ek Ödeme 1 Değer", "Ek Ödeme 1 Periyot",
     "Ek Ödeme 2 Mod", "Ek Ödeme 2 Değer", "Ek Ödeme 2 Periyot",
-    "Gıda Tip", "Gıda Tutar",
-    "Yakacak Tip", "Yakacak Tutar",
-    "Giyim Tip", "Giyim Tutar",
-    "Ayakkabı Tip", "Ayakkabı Tutar",
-    "Yılbaşı Tip", "Yılbaşı Tutar",
-    "İzin Mod", "İzin Tip", "İzin Değer",
-    "Bayram Mod", "Bayram Tip", "Bayram Değer",
-    "Prim Mod", "Prim Tip", "Prim Değer",
-    "İkramiye Günü",
-    "Yasal Aile", "Muafiyet Aile", "Maktu Aile",
-    "Yasal Çocuk", "Muafiyet Çocuk", "Maktu Çocuk Birim",
-    "Vardiya Hesap", "Vardiya Mod", "Vardiya Değer",
-    "Gece Hesap", "Gece Mod", "Gece Değer",
-    "Ek Özel Tip", "Ek Özel Mod", "Ek Özel Değer",
+    "Gıda Tip", "Gıda Tutar", "Gıda Periyot", "Gıda Not",
+    "Yakacak Mod", "Yakacak KDV", "Yakacak Tutar", "Yakacak M3", "Yakacak Birim", "Yakacak Periyot", "Yakacak Not",
+    "Giyim Tip", "Giyim Tutar", "Giyim Periyot", "Giyim Not",
+    "Ayakkabı Tip", "Ayakkabı Tutar", "Ayakkabı Periyot", "Ayakkabı Not",
+    "Yılbaşı Tip", "Yılbaşı Tutar", "Yılbaşı Periyot", "Yılbaşı Not",
+    "İzin Mod", "İzin Tip", "İzin Değer", "İzin Periyot", "İzin Not",
+    "Bayram Mod", "Bayram Tip", "Bayram Değer", "Bayram Periyot", "Bayram Not",
+    "Prim Mod", "Prim Tip", "Prim Değer", "Prim Periyot", "Prim Not",
+    "İkramiye Günü", "İkramiye Not",
+    "Yasal Aile", "Yasal Aile Pct", "Muafiyet Aile", "Muafiyet Aile Pct", "Maktu Aile", "Aile Not",
+    "Yasal Çocuk", "Yasal Çocuk Pct", "Muafiyet Çocuk", "Muafiyet Çocuk Pct", "Maktu Çocuk Birim", "Çocuk Not",
+    "Vardiya Hesap", "Vardiya Mod", "Vardiya Değer", "Vardiya Not",
+    "Gece Hesap", "Gece Mod", "Gece Değer", "Gece Not",
+    "Ek Özel Tip", "Ek Özel Mod", "Ek Özel Değer", "Ek Özel Not",
     "Denge Aktif", "Denge Oran",
+    "Sosyal Zam Pct",
+    "Zam JSON",
     "Ana Maaş (Brüt)", "Sosyal Paket", "Toplam Maliyet"
 ]
 
@@ -60,82 +63,67 @@ SHEET_HEADERS = [
 # VARSAYILAN DEĞERLER
 # ============================================================
 DEFAULTS = {
-    "s_isyeri": "",
-    "s_isyeri_tipi": "İşyeri",
-    "s_grev": "Grev Yasağı Yok",
-    "s_yabanci": False,
-    "s_ulke": "Türkiye",
-    "s_isv_sendika": "",
-    "s_sektor": "Özel",
-    "s_grup": "Petrol",
-    "s_subeler": [],
-    "s_uye": 0,
-    "s_calisan": 0,
+    "s_isyeri": "", "s_isyeri_tipi": "İşyeri", "s_grev": "Grev Yasağı Yok",
+    "s_yabanci": False, "s_ulke": "Türkiye", "s_isv_sendika": "",
+    "s_sektor": "Özel", "s_grup": "Petrol", "s_subeler": [],
+    "s_uye": 0, "s_calisan": 0,
     "s_tis_bas": datetime.now().date(),
     "s_tis_bit": datetime.now().replace(year=datetime.now().year + 2).date(),
     "s_zam_verileri": [],
-    "s_u_tipi": "Net",
-    "s_u_tutar": 20000.0,
-    "s_ek1_mod": "Maktu",
-    "s_ek1_val": 0.0,
-    "s_ek1_per": "Aylık",
-    "s_ek2_mod": "Maktu",
-    "s_ek2_val": 0.0,
-    "s_ek2_per": "Aylık",
-    "s_gida_tip": "Net",
-    "s_gida_val": 0.0,
-    "s_yakacak_tip": "Net",
-    "s_yakacak_val": 0.0,
-    "s_giyim_tip": "Net",
-    "s_giyim_val": 0.0,
-    "s_ayakkabi_tip": "Net",
-    "s_ayakkabi_val": 0.0,
-    "s_yilbasi_tip": "Net",
-    "s_yilbasi_val": 0.0,
-    "s_iz_m": "Maktu",
-    "s_iz_t": "Net",
-    "s_iz_v": 0.0,
-    "s_ba_m": "Maktu",
-    "s_ba_t": "Net",
-    "s_ba_v": 0.0,
-    "s_pr_m": "Maktu",
-    "s_pr_t": "Net",
-    "s_pr_v": 0.0,
-    "s_ikramiye": 0,
-    "s_yasal_aile": False,
-    "s_muaf_aile": False,
-    "s_maktu_aile": 0.0,
-    "s_yasal_cocuk": False,
-    "s_muaf_cocuk": False,
-    "s_maktu_cocuk": 0.0,
-    "s_v_hesap": "Sabit",
-    "s_v_mod": "Maktu",
-    "s_v_val": 0.0,
-    "s_g_hesap": "Sabit",
-    "s_g_mod": "Maktu",
-    "s_g_val": 0.0,
-    "s_eo_tip": "Günlük Ücret",
-    "s_eo_mod": "Katsayı",
-    "s_eo_val": 0.0,
-    "s_denge": False,
-    "s_denge_oran": 11.0,
+    "s_u_tipi": "Net", "s_u_tutar": 20000.0,
+    "s_ek1_mod": "Maktu", "s_ek1_val": 0.0, "s_ek1_per": "Aylık",
+    "s_ek2_mod": "Maktu", "s_ek2_val": 0.0, "s_ek2_per": "Aylık",
+    # Gıda
+    "s_gida_tip": "Net", "s_gida_val": 0.0, "s_gida_per": "Aylık", "s_gida_not": "",
+    # Yakacak
+    "s_yakacak_mod": "Maktu", "s_yakacak_kdv": "KDV Dahil Değil",
+    "s_yakacak_val": 0.0, "s_yakacak_m3": 0.0, "s_yakacak_birim": 0.0,
+    "s_yakacak_per": "Yıllık", "s_yakacak_not": "",
+    # Giyim
+    "s_giyim_tip": "Net", "s_giyim_val": 0.0, "s_giyim_per": "Yıllık", "s_giyim_not": "",
+    # Ayakkabı
+    "s_ayakkabi_tip": "Net", "s_ayakkabi_val": 0.0, "s_ayakkabi_per": "Yıllık", "s_ayakkabi_not": "",
+    # Yılbaşı
+    "s_yilbasi_tip": "Net", "s_yilbasi_val": 0.0, "s_yilbasi_per": "Yıllık", "s_yilbasi_not": "",
+    # İzin
+    "s_iz_m": "Maktu", "s_iz_t": "Net", "s_iz_v": 0.0, "s_iz_per": "Yıllık", "s_iz_not": "",
+    # Bayram
+    "s_ba_m": "Maktu", "s_ba_t": "Net", "s_ba_v": 0.0, "s_ba_per": "Yıllık", "s_ba_not": "",
+    # Prim
+    "s_pr_m": "Maktu", "s_pr_t": "Net", "s_pr_v": 0.0, "s_pr_per": "Aylık", "s_pr_not": "",
+    # İkramiye
+    "s_ikramiye": 0, "s_ikramiye_not": "",
+    # Aile & Çocuk
+    "s_yasal_aile": False, "s_yasal_aile_pct": 100.0,
+    "s_muaf_aile": False, "s_muaf_aile_pct": 100.0,
+    "s_maktu_aile": 0.0, "s_aile_not": "",
+    "s_yasal_cocuk": False, "s_yasal_cocuk_pct": 100.0,
+    "s_muaf_cocuk": False, "s_muaf_cocuk_pct": 100.0,
+    "s_maktu_cocuk": 0.0, "s_cocuk_not": "",
+    # Vardiya
+    "s_v_hesap": "Sabit", "s_v_mod": "Maktu", "s_v_val": 0.0, "s_v_not": "",
+    # Gece
+    "s_g_hesap": "Sabit", "s_g_mod": "Maktu", "s_g_val": 0.0, "s_g_not": "",
+    # Ek özel
+    "s_eo_tip": "Günlük Ücret", "s_eo_mod": "Katsayı", "s_eo_val": 0.0, "s_eo_not": "",
+    # Denge
+    "s_denge": False, "s_denge_oran": 11.0,
+    # Toplu sosyal zam
+    "s_sosyal_zam_pct": 0.0,
 }
 
 # ============================================================
 # KULLANICI YÖNETİMİ
 # ============================================================
 def get_users():
-    try:
-        return st.secrets["users"]
-    except Exception:
-        return {}
+    try: return st.secrets["users"]
+    except: return {}
 
 def check_password():
     if "password_correct" not in st.session_state:
         st.session_state["password_correct"] = False
         st.session_state["active_user"] = None
-    if st.session_state["password_correct"]:
-        return True
+    if st.session_state["password_correct"]: return True
     st.markdown("<h2 style='text-align:center'>🔐 Petrol-İş TİS Servisi</h2>", unsafe_allow_html=True)
     col1, col2, col3 = st.columns([1, 2, 1])
     with col2:
@@ -155,15 +143,12 @@ if not check_password():
     st.stop()
 
 # ============================================================
-# SESSION STATE — sadece eksik olanları doldur
+# SESSION STATE
 # ============================================================
 for k, v in DEFAULTS.items():
     if k not in st.session_state:
         st.session_state[k] = v
 
-# ============================================================
-# SIFIRLA — tüm s_ key'lerini DEFAULTS'a döndürür
-# ============================================================
 def sifirla():
     for k, v in DEFAULTS.items():
         st.session_state[k] = v
@@ -173,26 +158,19 @@ def sifirla():
 # ============================================================
 def yukle_kayit(r):
     def rv(col, default=""):
-        val = r.get(col, "")
-        return val if (val != "" and val is not None) else default
-
+        val = r.get(col, ""); return val if (val != "" and val is not None) else default
     def rf(col, default=0.0):
         try:
             val = str(r.get(col, "")).strip().replace(",", ".")
             return float(val) if val not in ("", "None") else float(default)
-        except:
-            return float(default)
-
+        except: return float(default)
     def ri(col, default=0):
         try:
             val = str(r.get(col, "")).strip()
             return int(float(val)) if val not in ("", "None") else int(default)
-        except:
-            return int(default)
-
+        except: return int(default)
     def rs(col, choices, default):
-        val = rv(col, default)
-        return val if val in choices else default
+        val = rv(col, default); return val if val in choices else default
 
     st.session_state["s_isyeri"]      = rv("İşyeri")
     st.session_state["s_isyeri_tipi"] = rs("İşyeri Tipi", ["İşyeri", "İşletme"], "İşyeri")
@@ -205,64 +183,107 @@ def yukle_kayit(r):
     try:
         sub_str = rv("Şubeler", "")
         st.session_state["s_subeler"] = [s.strip() for s in sub_str.split(",") if s.strip()]
-    except:
-        st.session_state["s_subeler"] = []
+    except: st.session_state["s_subeler"] = []
     st.session_state["s_uye"]     = ri("Üye Sayısı")
     st.session_state["s_calisan"] = ri("Toplam Çalışan")
     try:
-        bas = rv("TİS Başlangıç")
-        bit = rv("TİS Bitiş")
+        bas = rv("TİS Başlangıç"); bit = rv("TİS Bitiş")
         if bas: st.session_state["s_tis_bas"] = datetime.strptime(bas, "%d/%m/%Y").date()
         if bit: st.session_state["s_tis_bit"] = datetime.strptime(bit, "%d/%m/%Y").date()
-    except:
-        pass
-    st.session_state["s_u_tipi"]       = rs("Ana Maaş Tipi", ["Net", "Brüt"], "Net")
-    st.session_state["s_u_tutar"]      = rf("Ana Maaş Tutar", 20000.0)
-    st.session_state["s_ek1_mod"]      = rs("Ek Ödeme 1 Mod", ["Maktu", "Katsayı (Gün)", "Yüzde (%)"], "Maktu")
-    st.session_state["s_ek1_val"]      = rf("Ek Ödeme 1 Değer")
-    st.session_state["s_ek1_per"]      = rs("Ek Ödeme 1 Periyot", ["Aylık", "Yıllık"], "Aylık")
-    st.session_state["s_ek2_mod"]      = rs("Ek Ödeme 2 Mod", ["Maktu", "Katsayı (Gün)", "Yüzde (%)"], "Maktu")
-    st.session_state["s_ek2_val"]      = rf("Ek Ödeme 2 Değer")
-    st.session_state["s_ek2_per"]      = rs("Ek Ödeme 2 Periyot", ["Aylık", "Yıllık"], "Aylık")
-    st.session_state["s_gida_tip"]     = rs("Gıda Tip", ["Net", "Brüt"], "Net")
-    st.session_state["s_gida_val"]     = rf("Gıda Tutar")
-    st.session_state["s_yakacak_tip"]  = rs("Yakacak Tip", ["Net", "Brüt"], "Net")
-    st.session_state["s_yakacak_val"]  = rf("Yakacak Tutar")
-    st.session_state["s_giyim_tip"]    = rs("Giyim Tip", ["Net", "Brüt"], "Net")
-    st.session_state["s_giyim_val"]    = rf("Giyim Tutar")
+    except: pass
+    st.session_state["s_u_tipi"]  = rs("Ana Maaş Tipi", ["Net", "Brüt"], "Net")
+    st.session_state["s_u_tutar"] = rf("Ana Maaş Tutar", 20000.0)
+    st.session_state["s_ek1_mod"] = rs("Ek Ödeme 1 Mod", ["Maktu", "Katsayı (Gün)", "Yüzde (%)"], "Maktu")
+    st.session_state["s_ek1_val"] = rf("Ek Ödeme 1 Değer")
+    st.session_state["s_ek1_per"] = rs("Ek Ödeme 1 Periyot", ["Aylık", "Yıllık"], "Aylık")
+    st.session_state["s_ek2_mod"] = rs("Ek Ödeme 2 Mod", ["Maktu", "Katsayı (Gün)", "Yüzde (%)"], "Maktu")
+    st.session_state["s_ek2_val"] = rf("Ek Ödeme 2 Değer")
+    st.session_state["s_ek2_per"] = rs("Ek Ödeme 2 Periyot", ["Aylık", "Yıllık"], "Aylık")
+    # Gıda
+    st.session_state["s_gida_tip"] = rs("Gıda Tip", ["Net", "Brüt"], "Net")
+    st.session_state["s_gida_val"] = rf("Gıda Tutar")
+    st.session_state["s_gida_per"] = rs("Gıda Periyot", ["Aylık", "Yıllık"], "Aylık")
+    st.session_state["s_gida_not"] = rv("Gıda Not")
+    # Yakacak
+    st.session_state["s_yakacak_mod"]   = rs("Yakacak Mod", ["Maktu", "Metreküp"], "Maktu")
+    st.session_state["s_yakacak_kdv"]   = rs("Yakacak KDV", ["KDV Dahil Değil", "KDV Dahil"], "KDV Dahil Değil")
+    st.session_state["s_yakacak_val"]   = rf("Yakacak Tutar")
+    st.session_state["s_yakacak_m3"]    = rf("Yakacak M3")
+    st.session_state["s_yakacak_birim"] = rf("Yakacak Birim")
+    st.session_state["s_yakacak_per"]   = rs("Yakacak Periyot", ["Aylık", "Yıllık"], "Yıllık")
+    st.session_state["s_yakacak_not"]   = rv("Yakacak Not")
+    # Giyim
+    st.session_state["s_giyim_tip"] = rs("Giyim Tip", ["Net", "Brüt"], "Net")
+    st.session_state["s_giyim_val"] = rf("Giyim Tutar")
+    st.session_state["s_giyim_per"] = rs("Giyim Periyot", ["Aylık", "Yıllık"], "Yıllık")
+    st.session_state["s_giyim_not"] = rv("Giyim Not")
+    # Ayakkabı
     st.session_state["s_ayakkabi_tip"] = rs("Ayakkabı Tip", ["Net", "Brüt"], "Net")
     st.session_state["s_ayakkabi_val"] = rf("Ayakkabı Tutar")
-    st.session_state["s_yilbasi_tip"]  = rs("Yılbaşı Tip", ["Net", "Brüt"], "Net")
-    st.session_state["s_yilbasi_val"]  = rf("Yılbaşı Tutar")
-    st.session_state["s_iz_m"]         = rs("İzin Mod", ["Maktu", "Katsayı (Gün)"], "Maktu")
-    st.session_state["s_iz_t"]         = rs("İzin Tip", ["Net", "Brüt"], "Net")
-    st.session_state["s_iz_v"]         = rf("İzin Değer")
-    st.session_state["s_ba_m"]         = rs("Bayram Mod", ["Maktu", "Katsayı (Gün)"], "Maktu")
-    st.session_state["s_ba_t"]         = rs("Bayram Tip", ["Net", "Brüt"], "Net")
-    st.session_state["s_ba_v"]         = rf("Bayram Değer")
-    st.session_state["s_pr_m"]         = rs("Prim Mod", ["Maktu", "Katsayı (Gün)", "Yüzde (%)"], "Maktu")
-    st.session_state["s_pr_t"]         = rs("Prim Tip", ["Net", "Brüt"], "Net")
-    st.session_state["s_pr_v"]         = rf("Prim Değer")
+    st.session_state["s_ayakkabi_per"] = rs("Ayakkabı Periyot", ["Aylık", "Yıllık"], "Yıllık")
+    st.session_state["s_ayakkabi_not"] = rv("Ayakkabı Not")
+    # Yılbaşı
+    st.session_state["s_yilbasi_tip"] = rs("Yılbaşı Tip", ["Net", "Brüt"], "Net")
+    st.session_state["s_yilbasi_val"] = rf("Yılbaşı Tutar")
+    st.session_state["s_yilbasi_per"] = rs("Yılbaşı Periyot", ["Aylık", "Yıllık"], "Yıllık")
+    st.session_state["s_yilbasi_not"] = rv("Yılbaşı Not")
+    # İzin
+    st.session_state["s_iz_m"]   = rs("İzin Mod", ["Maktu", "Katsayı (Gün)"], "Maktu")
+    st.session_state["s_iz_t"]   = rs("İzin Tip", ["Net", "Brüt"], "Net")
+    st.session_state["s_iz_v"]   = rf("İzin Değer")
+    st.session_state["s_iz_per"] = rs("İzin Periyot", ["Aylık", "Yıllık"], "Yıllık")
+    st.session_state["s_iz_not"] = rv("İzin Not")
+    # Bayram
+    st.session_state["s_ba_m"]   = rs("Bayram Mod", ["Maktu", "Katsayı (Gün)"], "Maktu")
+    st.session_state["s_ba_t"]   = rs("Bayram Tip", ["Net", "Brüt"], "Net")
+    st.session_state["s_ba_v"]   = rf("Bayram Değer")
+    st.session_state["s_ba_per"] = rs("Bayram Periyot", ["Aylık", "Yıllık"], "Yıllık")
+    st.session_state["s_ba_not"] = rv("Bayram Not")
+    # Prim
+    st.session_state["s_pr_m"]   = rs("Prim Mod", ["Maktu", "Katsayı (Gün)", "Yüzde (%)"], "Maktu")
+    st.session_state["s_pr_t"]   = rs("Prim Tip", ["Net", "Brüt"], "Net")
+    st.session_state["s_pr_v"]   = rf("Prim Değer")
+    st.session_state["s_pr_per"] = rs("Prim Periyot", ["Aylık", "Yıllık"], "Aylık")
+    st.session_state["s_pr_not"] = rv("Prim Not")
+    # İkramiye
     st.session_state["s_ikramiye"]     = ri("İkramiye Günü")
-    st.session_state["s_yasal_aile"]   = rv("Yasal Aile", "False") == "True"
-    st.session_state["s_muaf_aile"]    = rv("Muafiyet Aile", "False") == "True"
-    st.session_state["s_maktu_aile"]   = rf("Maktu Aile")
-    st.session_state["s_yasal_cocuk"]  = rv("Yasal Çocuk", "False") == "True"
-    st.session_state["s_muaf_cocuk"]   = rv("Muafiyet Çocuk", "False") == "True"
-    st.session_state["s_maktu_cocuk"]  = rf("Maktu Çocuk Birim")
-    st.session_state["s_v_hesap"]      = rs("Vardiya Hesap", ["Sabit", "Fiili (195/225)"], "Sabit")
-    st.session_state["s_v_mod"]        = rs("Vardiya Mod", ["Maktu", "Yüzde (%)"], "Maktu")
-    st.session_state["s_v_val"]        = rf("Vardiya Değer")
-    st.session_state["s_g_hesap"]      = rs("Gece Hesap", ["Sabit", "Fiili (80/225)"], "Sabit")
-    st.session_state["s_g_mod"]        = rs("Gece Mod", ["Maktu", "Yüzde (%)"], "Maktu")
-    st.session_state["s_g_val"]        = rf("Gece Değer")
-    st.session_state["s_eo_tip"]       = rs("Ek Özel Tip", ["Günlük Ücret", "Aylık Ücret"], "Günlük Ücret")
-    st.session_state["s_eo_mod"]       = rs("Ek Özel Mod", ["Katsayı", "Yüzde (%)"], "Katsayı")
-    st.session_state["s_eo_val"]       = rf("Ek Özel Değer")
-    st.session_state["s_denge"]        = rv("Denge Aktif", "False") == "True"
-    st.session_state["s_denge_oran"]   = rf("Denge Oran", 11.0)
-    # Zam verileri sheets'te detaylı saklanmıyor, sıfırla
-    st.session_state["s_zam_verileri"] = []
+    st.session_state["s_ikramiye_not"] = rv("İkramiye Not")
+    # Aile & Çocuk
+    st.session_state["s_yasal_aile"]      = rv("Yasal Aile", "False") == "True"
+    st.session_state["s_yasal_aile_pct"]  = rf("Yasal Aile Pct", 100.0)
+    st.session_state["s_muaf_aile"]       = rv("Muafiyet Aile", "False") == "True"
+    st.session_state["s_muaf_aile_pct"]   = rf("Muafiyet Aile Pct", 100.0)
+    st.session_state["s_maktu_aile"]      = rf("Maktu Aile")
+    st.session_state["s_aile_not"]        = rv("Aile Not")
+    st.session_state["s_yasal_cocuk"]     = rv("Yasal Çocuk", "False") == "True"
+    st.session_state["s_yasal_cocuk_pct"] = rf("Yasal Çocuk Pct", 100.0)
+    st.session_state["s_muaf_cocuk"]      = rv("Muafiyet Çocuk", "False") == "True"
+    st.session_state["s_muaf_cocuk_pct"]  = rf("Muafiyet Çocuk Pct", 100.0)
+    st.session_state["s_maktu_cocuk"]     = rf("Maktu Çocuk Birim")
+    st.session_state["s_cocuk_not"]       = rv("Çocuk Not")
+    # Vardiya, Gece, Ek özel
+    st.session_state["s_v_hesap"] = rs("Vardiya Hesap", ["Sabit", "Fiili (195/225)"], "Sabit")
+    st.session_state["s_v_mod"]   = rs("Vardiya Mod", ["Maktu", "Yüzde (%)"], "Maktu")
+    st.session_state["s_v_val"]   = rf("Vardiya Değer")
+    st.session_state["s_v_not"]   = rv("Vardiya Not")
+    st.session_state["s_g_hesap"] = rs("Gece Hesap", ["Sabit", "Fiili (80/225)"], "Sabit")
+    st.session_state["s_g_mod"]   = rs("Gece Mod", ["Maktu", "Yüzde (%)"], "Maktu")
+    st.session_state["s_g_val"]   = rf("Gece Değer")
+    st.session_state["s_g_not"]   = rv("Gece Not")
+    st.session_state["s_eo_tip"]  = rs("Ek Özel Tip", ["Günlük Ücret", "Aylık Ücret"], "Günlük Ücret")
+    st.session_state["s_eo_mod"]  = rs("Ek Özel Mod", ["Katsayı", "Yüzde (%)"], "Katsayı")
+    st.session_state["s_eo_val"]  = rf("Ek Özel Değer")
+    st.session_state["s_eo_not"]  = rv("Ek Özel Not")
+    st.session_state["s_denge"]      = rv("Denge Aktif", "False") == "True"
+    st.session_state["s_denge_oran"] = rf("Denge Oran", 11.0)
+    st.session_state["s_sosyal_zam_pct"] = rf("Sosyal Zam Pct", 0.0)
+    # Zam verilerini JSON'dan yükle
+    try:
+        zam_json = rv("Zam JSON", "[]")
+        zam_data = json.loads(zam_json) if zam_json else []
+        st.session_state["s_zam_verileri"] = zam_data if isinstance(zam_data, list) else []
+    except:
+        st.session_state["s_zam_verileri"] = []
 
 # ============================================================
 # HESAPLAMA FONKSİYONLARI
@@ -282,6 +303,10 @@ def yardim_brutlestir(tutar, tip, oran):
     if tip == "Brüt": return tutar
     return tutar / oran
 
+def ayliklandir(tutar, periyot):
+    """Yıllık tutarı aylığa çevirir, aylık ise dokunmaz."""
+    return tutar / 12 if periyot == "Yıllık" else tutar
+
 def sf(val):
     try: return f"{float(val):.4f}"
     except: return "0.0000"
@@ -290,36 +315,42 @@ def zam_planini_uygula(baslangic_maas, zam_listesi):
     bugun  = datetime.now().date()
     guncel = float(baslangic_maas)
     for donem in zam_listesi:
-        if not donem.get("uygula", False):
-            continue
+        if not donem.get("uygula", False): continue
         try:
             zam_tarihi = datetime(int(donem["yil"]), AY_MAP[donem["ay"]], 1).date()
-        except Exception:
-            continue
-        if zam_tarihi > bugun:
-            continue
+        except: continue
+        if zam_tarihi > bugun: continue
         hesap_tipi = donem.get("hesap_tipi", "Birbirine Bağlı (Bileşik)")
         if hesap_tipi == "Birbirine Bağlı (Bileşik)":
             gecici = guncel
             for kalem in donem.get("kalemler", []):
                 ort_kidem = kalem.get("ort_kidem", 1.0) if kalem.get("kidemli", False) else 1.0
                 etkili = kalem["deger"] * ort_kidem
-                if kalem["tip"] == "Yüzde (%)":
-                    gecici *= (1 + etkili / 100)
-                else:
-                    gecici += etkili
+                gecici = gecici * (1 + etkili/100) if kalem["tip"] == "Yüzde (%)" else gecici + etkili
             guncel = gecici
         else:
             artis = 0.0
             for kalem in donem.get("kalemler", []):
                 ort_kidem = kalem.get("ort_kidem", 1.0) if kalem.get("kidemli", False) else 1.0
                 etkili = kalem["deger"] * ort_kidem
-                if kalem["tip"] == "Yüzde (%)":
-                    artis += guncel * (etkili / 100)
-                else:
-                    artis += etkili
+                artis += guncel * (etkili/100) if kalem["tip"] == "Yüzde (%)" else etkili
             guncel += artis
     return guncel
+
+def yakacak_hesapla():
+    """Yakacak ödentisini brüt TL olarak döndürür (aylık)."""
+    mod = st.session_state["s_yakacak_mod"]
+    per = st.session_state["s_yakacak_per"]
+    if mod == "Maktu":
+        val = yardim_brutlestir(st.session_state["s_yakacak_val"], "Net", secilen_oran)
+    else:
+        m3    = st.session_state["s_yakacak_m3"]
+        birim = st.session_state["s_yakacak_birim"]
+        kdv   = st.session_state["s_yakacak_kdv"]
+        net   = m3 * birim
+        val   = net * 1.20 if kdv == "KDV Dahil Değil" else net
+        val   = yardim_brutlestir(val, "Net", secilen_oran)
+    return ayliklandir(val, per)
 
 # ============================================================
 # GOOGLE SHEETS
@@ -342,15 +373,13 @@ def verileri_getir():
         data  = sheet.get_all_records(expected_headers=SHEET_HEADERS, head=1)
         return pd.DataFrame(data)
     except Exception as e:
-        st.error(f"Veri çekilemedi: {e}")
-        return pd.DataFrame()
+        st.error(f"Veri çekilemedi: {e}"); return pd.DataFrame()
 
 def baslik_guncelle(sheet):
     try:
         mevcut = sheet.row_values(1)
         if mevcut != SHEET_HEADERS:
-            sheet.delete_rows(1)
-            sheet.insert_row(SHEET_HEADERS, 1)
+            sheet.delete_rows(1); sheet.insert_row(SHEET_HEADERS, 1)
     except Exception as e:
         st.warning(f"Başlık güncellenemedi: {e}")
 
@@ -361,54 +390,37 @@ with st.sidebar:
     st.markdown(f"### 👤 {st.session_state['active_user']}")
     if st.button("🚪 Güvenli Çıkış"):
         for k in list(st.session_state.keys()):
-            if k not in {"password_correct", "active_user"}:
-                del st.session_state[k]
-        st.session_state["password_correct"] = False
-        st.rerun()
+            if k not in {"password_correct", "active_user"}: del st.session_state[k]
+        st.session_state["password_correct"] = False; st.rerun()
 
     st.divider()
     st.header("⚙️ Genel Ayarlar")
     asgari_ucret = st.number_input("Asgari Ücret (Brüt)", value=33030.00)
-
-    oran_map = {
-        0.71491: "%15 Vergi Dilimi",
-        0.67241: "%20 Vergi Dilimi",
-        0.61291: "%27 Vergi Dilimi",
-        0.54491: "%35 Vergi Dilimi"
-    }
-    secilen_oran = st.radio("📉 Vergi Dilimi",
-                            options=list(oran_map.keys()),
-                            format_func=lambda x: oran_map[x],
-                            index=1)
-
+    oran_map = {0.71491: "%15 Vergi", 0.67241: "%20 Vergi", 0.61291: "%27 Vergi", 0.54491: "%35 Vergi"}
+    secilen_oran = st.radio("📉 Vergi Dilimi", options=list(oran_map.keys()),
+                            format_func=lambda x: oran_map[x], index=1)
     st.subheader("⚖️ Yasal Yardımlar")
     aile_yasal_sabit = st.number_input("657 Aile Yardımı", value=3154.63)
-    cocuk_6_ustu    = st.number_input("657 Çocuk (6+)", value=346.97)
-    cocuk_0_6       = st.number_input("657 Çocuk (0-6)", value=693.94)
-    muafiyet_aile   = asgari_ucret * 0.10
-    muafiyet_cocuk  = (asgari_ucret * 0.02) * 2
+    cocuk_6_ustu     = st.number_input("657 Çocuk (6+)",   value=346.97)
+    cocuk_0_6        = st.number_input("657 Çocuk (0-6)",  value=693.94)
+    muafiyet_aile    = asgari_ucret * 0.10
+    muafiyet_cocuk   = (asgari_ucret * 0.02) * 2
     st.info(f"Muafiyet Aile: {muafiyet_aile:,.2f} TL\nMuafiyet Çocuk(2): {muafiyet_cocuk:,.2f} TL")
 
 # ============================================================
 # SEKMELER
 # ============================================================
-tab1, tab2, tab3 = st.tabs([
-    "🏢 İşyeri Bilgileri",
-    "💰 Ücret ve Sosyal Ödemeler",
-    "📊 Karşılaştırma ve İstatistik"
-])
+tab1, tab2, tab3 = st.tabs(["🏢 İşyeri Bilgileri", "💰 Ücret ve Sosyal Ödemeler", "📊 Karşılaştırma ve İstatistik"])
 
 # ============================================================
-# TAB 1 — İŞYERİ BİLGİLERİ
+# TAB 1
 # ============================================================
 with tab1:
     st.header("🏢 İşyeri Bilgileri")
-
     df = verileri_getir()
 
     if st.button("➕ Yeni Kayıt"):
-        sifirla()
-        st.rerun()
+        sifirla(); st.rerun()
 
     with st.expander("📂 Kayıtlı Veriyi Çağır", expanded=not df.empty):
         if not df.empty:
@@ -417,150 +429,95 @@ with tab1:
                 sec = st.selectbox("İşyeri Seç", isyeri_listesi)
                 if st.button("📥 Verileri Yükle"):
                     r = df[df["İşyeri"] == sec].iloc[0].to_dict()
-                    yukle_kayit(r)
-                    st.success(f"✅ {sec} yüklendi!")
-                    st.rerun()
+                    yukle_kayit(r); st.success(f"✅ {sec} yüklendi!"); st.rerun()
         st.subheader("📋 Kayıtlı İşyerleri")
         if not df.empty:
-            goster = [c for c in ["İşyeri", "Sektör", "Grup", "Şubeler", "TİS Başlangıç", "TİS Bitiş", "Toplam Maliyet"] if c in df.columns]
+            goster = [c for c in ["İşyeri","Sektör","Grup","Şubeler","TİS Başlangıç","TİS Bitiş","Toplam Maliyet"] if c in df.columns]
             st.dataframe(df[goster], use_container_width=True)
-        else:
-            st.info("Henüz kayıt yok.")
+        else: st.info("Henüz kayıt yok.")
 
     st.divider()
-
     col_a, col_b = st.columns(2)
     with col_a:
         st.subheader("🏭 Temel Bilgiler")
         st.text_input("İşyeri / İşletme Adı", key="s_isyeri")
         st.radio("Tipi", ["İşyeri", "İşletme"], key="s_isyeri_tipi", horizontal=True)
         st.selectbox("Grev Yasağı", ["Grev Yasağı Yok", "Grev Yasağı Var"], key="s_grev")
-
         st.subheader("🌍 Ortaklık Bilgisi")
         st.checkbox("Yabancı Ortaklı", key="s_yabanci")
         if st.session_state["s_yabanci"]:
             st.selectbox("Ortak Ülke", ULKELER, key="s_ulke")
         st.text_input("İşveren Sendikası", key="s_isv_sendika")
-
         st.subheader("🏷️ Sektör / Grup")
         st.radio("Sektör", SEKTORLER, key="s_sektor", horizontal=True)
         st.selectbox("Grup", GRUPLAR, key="s_grup")
         st.multiselect("Bağlı Şubeler", SUBELER, key="s_subeler")
-
     with col_b:
         st.subheader("👥 Üye / Çalışan")
         st.number_input("Sendikalı Üye Sayısı", min_value=0, key="s_uye")
         st.number_input("Toplam Çalışan Sayısı", min_value=0, key="s_calisan")
-
         st.subheader("📅 TİS Dönemi")
         st.date_input("Başlangıç Tarihi", key="s_tis_bas")
         st.date_input("Bitiş Tarihi", key="s_tis_bit")
-
-        bugun      = datetime.now().date()
-        bas_d      = st.session_state["s_tis_bas"]
-        bit_d      = st.session_state["s_tis_bit"]
-        kalan      = max((bit_d - bugun).days, 0)
-        toplam_gun = (bit_d - bas_d).days
-        yuzde      = min(max(((toplam_gun - kalan) / toplam_gun) * 100, 0), 100) if toplam_gun > 0 else 0
-        st.progress(yuzde / 100)
-        st.caption(f"Kalan: {kalan} gün")
-        if kalan <= 0:
-            st.error("❌ Sözleşme süresi doldu!")
-        elif kalan <= 120:
-            st.error("🚨 Yetki başvuru süresi başladı!")
-        elif kalan <= 365:
-            st.warning("⚠️ Son yılındasınız.")
+        bugun = datetime.now().date()
+        bas_d = st.session_state["s_tis_bas"]; bit_d = st.session_state["s_tis_bit"]
+        kalan = max((bit_d - bugun).days, 0); toplam_gun = (bit_d - bas_d).days
+        yuzde = min(max(((toplam_gun-kalan)/toplam_gun)*100, 0), 100) if toplam_gun > 0 else 0
+        st.progress(yuzde / 100); st.caption(f"Kalan: {kalan} gün")
+        if kalan <= 0: st.error("❌ Sözleşme süresi doldu!")
+        elif kalan <= 120: st.error("🚨 Yetki başvuru süresi başladı!")
+        elif kalan <= 365: st.warning("⚠️ Son yılındasınız.")
         else:
             fark = toplam_gun + 1
-            if fark < 365:
-                st.warning(f"⚠️ TİS 1 yıldan az olamaz ({fark} gün)")
-            elif fark > 1095:
-                st.error("❌ TİS 3 yıldan fazla olamaz")
-            else:
-                st.success(f"✅ {round(fark/365,1)} yıl ({fark} gün)")
+            if fark < 365: st.warning(f"⚠️ TİS 1 yıldan az ({fark} gün)")
+            elif fark > 1095: st.error("❌ TİS 3 yıldan fazla")
+            else: st.success(f"✅ {round(fark/365,1)} yıl ({fark} gün)")
 
-    # -------------------------------------------------------
     # ZAM PLANLAMA
-    # -------------------------------------------------------
     st.divider()
     st.subheader("📈 Dinamik Zam Planlaması")
     st.caption("Sözleşme boyunca uygulanacak her zam dönemini ayrı ayrı tanımlayın.")
-
-    zam_donem_sayisi = st.number_input("Kaç Farklı Zam Dönemi Var?",
-                                        min_value=1, max_value=12, value=2,
-                                        key="n_donem_sayisi")
-
+    zam_donem_sayisi = st.number_input("Kaç Farklı Zam Dönemi Var?", min_value=1, max_value=12, value=2, key="n_donem_sayisi")
     yeni_zamlar = []
     for i in range(int(zam_donem_sayisi)):
         with st.container(border=True):
             hd1, hd2 = st.columns([3, 1])
-            with hd1:
-                st.markdown(f"**{i+1}. Zam Dönemi**")
-            with hd2:
-                z_uygula = st.checkbox("✅ Hesaba Kat", value=False, key=f"z_uygula_{i}",
-                                       help="Bu zammı maaş hesabına dahil etmek için işaretleyin.")
-
-            ct1, ct2, ct3 = st.columns([1, 1, 2])
-            with ct1:
-                z_yil = st.selectbox("Yıl", [2024, 2025, 2026, 2027, 2028], key=f"z_yil_{i}")
-            with ct2:
-                z_ay = st.selectbox("Ay", AYLAR, key=f"z_ay_{i}")
-            with ct3:
-                z_not = st.text_input("Not", placeholder="örn: 1. Yıl 1. Altı Ay", key=f"z_not_{i}")
-
-            hesap_tipi = st.radio(
-                "Uygulama Biçimi",
+            with hd1: st.markdown(f"**{i+1}. Zam Dönemi**")
+            with hd2: z_uygula = st.checkbox("✅ Hesaba Kat", value=False, key=f"z_uygula_{i}",
+                                              help="Bu zammı maaş hesabına dahil etmek için işaretleyin.")
+            ct1, ct2, ct3 = st.columns([1,1,2])
+            with ct1: z_yil = st.selectbox("Yıl", [2024,2025,2026,2027,2028], key=f"z_yil_{i}")
+            with ct2: z_ay  = st.selectbox("Ay", AYLAR, key=f"z_ay_{i}")
+            with ct3: z_not = st.text_input("Not", placeholder="örn: 1. Yıl 1. Altı Ay", key=f"z_not_{i}")
+            hesap_tipi = st.radio("Uygulama Biçimi",
                 ["Birbirine Bağlı (Bileşik)", "Ana Ücrete Ayrı Ayrı (Toplamsal)"],
-                key=f"h_tipi_{i}", horizontal=True
-            )
-
-            kalem_sayisi = st.number_input("Zam Kalemi Sayısı", min_value=1, max_value=5,
-                                           value=1, key=f"k_sayisi_{i}")
+                key=f"h_tipi_{i}", horizontal=True)
+            kalem_sayisi = st.number_input("Zam Kalemi Sayısı", min_value=1, max_value=5, value=1, key=f"k_sayisi_{i}")
             donem_kalemleri = []
             for j in range(int(kalem_sayisi)):
-                ck1, ck2, ck3, ck4 = st.columns([1.5, 2, 1.5, 1.5])
-                with ck1:
-                    k_tip = st.selectbox("Tip", ["Yüzde (%)", "Maktu (TL)"], key=f"k_tip_{i}_{j}")
-                with ck2:
-                    k_val = st.number_input("Tutar / Oran", min_value=0.0, step=0.1, key=f"k_val_{i}_{j}")
-                with ck3:
-                    k_kidem = st.selectbox("Kapsam", ["Sabit", "Kıdeme Bağlı"], key=f"k_kidem_{i}_{j}")
+                ck1, ck2, ck3, ck4 = st.columns([1.5,2,1.5,1.5])
+                with ck1: k_tip   = st.selectbox("Tip", ["Yüzde (%)", "Maktu (TL)"], key=f"k_tip_{i}_{j}")
+                with ck2: k_val   = st.number_input("Tutar / Oran", min_value=0.0, step=0.1, key=f"k_val_{i}_{j}")
+                with ck3: k_kidem = st.selectbox("Kapsam", ["Sabit", "Kıdeme Bağlı"], key=f"k_kidem_{i}_{j}")
                 with ck4:
                     k_ort_kidem = 1.0
                     if k_kidem == "Kıdeme Bağlı":
-                        k_ort_kidem = st.number_input("Ort. Kıdem (Yıl)", min_value=0.0,
-                                                       value=10.0, key=f"k_ort_kidem_{i}_{j}")
-                donem_kalemleri.append({
-                    "tip": k_tip,
-                    "deger": k_val,
-                    "kidemli": k_kidem == "Kıdeme Bağlı",
-                    "ort_kidem": k_ort_kidem
-                })
-
-            yeni_zamlar.append({
-                "yil": z_yil,
-                "ay": z_ay,
-                "not": z_not,
-                "hesap_tipi": hesap_tipi,
-                "kalemler": donem_kalemleri,
-                "uygula": z_uygula
-            })
-
+                        k_ort_kidem = st.number_input("Ort. Kıdem (Yıl)", min_value=0.0, value=10.0, key=f"k_ort_kidem_{i}_{j}")
+                donem_kalemleri.append({"tip": k_tip, "deger": k_val,
+                                        "kidemli": k_kidem=="Kıdeme Bağlı", "ort_kidem": k_ort_kidem})
+            yeni_zamlar.append({"yil": z_yil, "ay": z_ay, "not": z_not,
+                                 "hesap_tipi": hesap_tipi, "kalemler": donem_kalemleri, "uygula": z_uygula})
     st.session_state["s_zam_verileri"] = yeni_zamlar
-
     if yeni_zamlar:
         st.markdown("**📋 Zam Planı Özeti**")
         for d in yeni_zamlar:
-            kalem_str = ", ".join([
-                f"%{k['deger']}" if k['tip'] == "Yüzde (%)" else f"{k['deger']:.0f} TL"
-                for k in d["kalemler"]
-            ])
+            kalem_str = ", ".join([f"%{k['deger']}" if k['tip']=="Yüzde (%)" else f"{k['deger']:.0f} TL" for k in d["kalemler"]])
             not_str = f" — {d['not']}" if d['not'] else ""
             durum   = "✅ uygulanıyor" if d["uygula"] else "📋 kayıtlı"
             st.caption(f"• {d['ay']} {d['yil']}: {kalem_str}{not_str} — {durum}")
 
 # ============================================================
-# TAB 2 — ÜCRET VE SOSYAL ÖDEMELER
+# TAB 2
 # ============================================================
 with tab2:
     st.header("💰 Ücret ve Ek Ödemeler")
@@ -590,89 +547,157 @@ with tab2:
     uygulanan = [d for d in zam_listesi if d.get("uygula", False)]
     if zam_listesi:
         if uygulanan:
-            st.info(f"📊 {len(uygulanan)} zam dönemi uygulandı → Güncel Ana Maaş: **{a_brut:,.2f} TL** (Girilen: {maas_base:,.2f} TL)")
+            st.info(f"📊 {len(uygulanan)} zam uygulandı → Ana Maaş: **{a_brut:,.2f} TL** (Girilen: {maas_base:,.2f} TL)")
         else:
-            st.warning(f"📋 {len(zam_listesi)} zam dönemi kayıtlı ama hiçbiri işaretlenmemiş. Maaş girilen değer üzerinden: **{a_brut:,.2f} TL**")
+            st.warning(f"📋 {len(zam_listesi)} zam kayıtlı, hiçbiri işaretlenmemiş → **{a_brut:,.2f} TL**")
+
+    # ── TOPLU SOSYAL ZAM ──────────────────────────────────────
+    st.divider()
+    with st.container(border=True):
+        st.markdown("### 🔁 Toplu Sosyal Ödeme Artışı")
+        zc1, zc2 = st.columns([2,3])
+        with zc1:
+            st.number_input("Tüm Sosyal Ödemelere Uygulanacak Artış (%)",
+                            min_value=0.0, max_value=500.0, step=0.5, key="s_sosyal_zam_pct",
+                            help="0 girerseniz artış uygulanmaz. Bireysel tutarlar zaten girilmişse bu oran üstüne eklenir.")
+        with zc2:
+            zam_carpan = 1 + st.session_state["s_sosyal_zam_pct"] / 100
+            st.info(f"Çarpan: ×{zam_carpan:.4f}  — Sosyal tutarlar bu çarpanla artırılır.")
 
     st.markdown("### 🎁 Sosyal Yardımlar")
+
+    # ── YARDIMCI: başlık + periyot + not satırı ──────────────
+    def sosyal_baslik(etiket, per_key, not_key):
+        r1, r2, r3 = st.columns([2, 1, 2])
+        with r1: st.write(etiket)
+        with r2: st.selectbox("Periyot", ["Aylık", "Yıllık"], key=per_key, label_visibility="collapsed")
+        with r3: st.text_input("Açıklama", key=not_key, placeholder="Not...", label_visibility="collapsed")
+
     cs1, cs2 = st.columns(2)
     with cs1:
         with st.container(border=True):
-            st.write("🍞 **Gıda (Aylık)**")
+            sosyal_baslik("🍞 **Gıda**", "s_gida_per", "s_gida_not")
             st.radio("", ["Net", "Brüt"], horizontal=True, key="s_gida_tip")
             st.number_input("Tutar", min_value=0.0, key="s_gida_val")
-            gida = yardim_brutlestir(st.session_state["s_gida_val"], st.session_state["s_gida_tip"], secilen_oran)
+            gida_ham = yardim_brutlestir(st.session_state["s_gida_val"], st.session_state["s_gida_tip"], secilen_oran)
+            gida     = ayliklandir(gida_ham, st.session_state["s_gida_per"]) * zam_carpan
+
     with cs2:
         with st.container(border=True):
-            st.write("🔥 **Yakacak (Aylık)**")
-            st.radio("", ["Net", "Brüt"], horizontal=True, key="s_yakacak_tip")
-            st.number_input("Tutar", min_value=0.0, key="s_yakacak_val")
-            yakacak = yardim_brutlestir(st.session_state["s_yakacak_val"], st.session_state["s_yakacak_tip"], secilen_oran)
+            st.write("🔥 **Yakacak**")
+            yak_r1, yak_r2, yak_r3 = st.columns([1, 1, 2])
+            with yak_r1: st.selectbox("Periyot", ["Aylık","Yıllık"], key="s_yakacak_per", label_visibility="collapsed")
+            with yak_r2: st.selectbox("Mod", ["Maktu","Metreküp"], key="s_yakacak_mod", label_visibility="collapsed")
+            with yak_r3: st.text_input("Açıklama", key="s_yakacak_not", placeholder="Not...", label_visibility="collapsed")
+
+            if st.session_state["s_yakacak_mod"] == "Maktu":
+                st.number_input("Tutar (Net TL)", min_value=0.0, key="s_yakacak_val")
+            else:
+                st.selectbox("KDV Durumu", ["KDV Dahil Değil", "KDV Dahil"], key="s_yakacak_kdv")
+                wm1, wm2 = st.columns(2)
+                with wm1: st.number_input("Metreküp", min_value=0.0, step=1.0, key="s_yakacak_m3")
+                with wm2: st.number_input("Birim Fiyat (TL)", min_value=0.0, step=0.001, format="%.3f", key="s_yakacak_birim")
+                net_tutar = st.session_state["s_yakacak_m3"] * st.session_state["s_yakacak_birim"]
+                kdv_tutar = net_tutar * 1.20 if st.session_state["s_yakacak_kdv"] == "KDV Dahil Değil" else net_tutar
+                st.info(f"Net: {net_tutar:,.2f} TL  →  KDV'li: {kdv_tutar:,.2f} TL")
+                # yakacak_val'i hesaplanan tutarla eşitle (gösterim amaçlı)
+                st.session_state["s_yakacak_val"] = kdv_tutar
+            yakacak = yakacak_hesapla() * zam_carpan
 
     cs3, cs4, cs5 = st.columns(3)
     with cs3:
         with st.container(border=True):
-            st.write("👕 **Giyim (Yıllık)**")
-            st.radio("", ["Net", "Brüt"], horizontal=True, key="s_giyim_tip")
+            sosyal_baslik("👕 **Giyim**", "s_giyim_per", "s_giyim_not")
+            st.radio("", ["Net","Brüt"], horizontal=True, key="s_giyim_tip")
             st.number_input("Tutar", min_value=0.0, key="s_giyim_val")
-            giyim = yardim_brutlestir(st.session_state["s_giyim_val"], st.session_state["s_giyim_tip"], secilen_oran)
+            giyim_ham = yardim_brutlestir(st.session_state["s_giyim_val"], st.session_state["s_giyim_tip"], secilen_oran)
+            giyim     = ayliklandir(giyim_ham, st.session_state["s_giyim_per"]) * zam_carpan
     with cs4:
         with st.container(border=True):
-            st.write("👟 **Ayakkabı (Yıllık)**")
-            st.radio("", ["Net", "Brüt"], horizontal=True, key="s_ayakkabi_tip")
+            sosyal_baslik("👟 **Ayakkabı**", "s_ayakkabi_per", "s_ayakkabi_not")
+            st.radio("", ["Net","Brüt"], horizontal=True, key="s_ayakkabi_tip")
             st.number_input("Tutar", min_value=0.0, key="s_ayakkabi_val")
-            ayakkabi = yardim_brutlestir(st.session_state["s_ayakkabi_val"], st.session_state["s_ayakkabi_tip"], secilen_oran)
+            ayakkabi_ham = yardim_brutlestir(st.session_state["s_ayakkabi_val"], st.session_state["s_ayakkabi_tip"], secilen_oran)
+            ayakkabi     = ayliklandir(ayakkabi_ham, st.session_state["s_ayakkabi_per"]) * zam_carpan
     with cs5:
         with st.container(border=True):
-            st.write("🎁 **Yılbaşı (Yıllık)**")
-            st.radio("", ["Net", "Brüt"], horizontal=True, key="s_yilbasi_tip")
+            sosyal_baslik("🎁 **Yılbaşı**", "s_yilbasi_per", "s_yilbasi_not")
+            st.radio("", ["Net","Brüt"], horizontal=True, key="s_yilbasi_tip")
             st.number_input("Tutar", min_value=0.0, key="s_yilbasi_val")
-            yilbasi = yardim_brutlestir(st.session_state["s_yilbasi_val"], st.session_state["s_yilbasi_tip"], secilen_oran)
+            yilbasi_ham = yardim_brutlestir(st.session_state["s_yilbasi_val"], st.session_state["s_yilbasi_tip"], secilen_oran)
+            yilbasi     = ayliklandir(yilbasi_ham, st.session_state["s_yilbasi_per"]) * zam_carpan
 
     cs6, cs7, cs8 = st.columns(3)
     with cs6:
         with st.container(border=True):
-            st.write("📅 **İzin (Yıllık)**")
-            st.selectbox("Mod", ["Maktu", "Katsayı (Gün)"], key="s_iz_m")
-            st.radio("", ["Net", "Brüt"], horizontal=True, key="s_iz_t")
+            sosyal_baslik("📅 **İzin**", "s_iz_per", "s_iz_not")
+            st.selectbox("Mod", ["Maktu","Katsayı (Gün)"], key="s_iz_m")
+            st.radio("", ["Net","Brüt"], horizontal=True, key="s_iz_t")
             st.number_input("Değer", min_value=0.0, key="s_iz_v")
-            ay_izin = yardim_brutlestir(
-                calc_hybrid(st.session_state["s_iz_v"], st.session_state["s_iz_m"], g_brut),
-                st.session_state["s_iz_t"], secilen_oran) / 12
+            iz_ham = yardim_brutlestir(calc_hybrid(st.session_state["s_iz_v"], st.session_state["s_iz_m"], g_brut),
+                                       st.session_state["s_iz_t"], secilen_oran)
+            ay_izin = ayliklandir(iz_ham, st.session_state["s_iz_per"]) * zam_carpan
     with cs7:
         with st.container(border=True):
-            st.write("🎉 **Bayram (Yıllık)**")
-            st.selectbox("Mod", ["Maktu", "Katsayı (Gün)"], key="s_ba_m")
-            st.radio("", ["Net", "Brüt"], horizontal=True, key="s_ba_t")
+            sosyal_baslik("🎉 **Bayram**", "s_ba_per", "s_ba_not")
+            st.selectbox("Mod", ["Maktu","Katsayı (Gün)"], key="s_ba_m")
+            st.radio("", ["Net","Brüt"], horizontal=True, key="s_ba_t")
             st.number_input("Değer", min_value=0.0, key="s_ba_v")
-            ay_bayram = yardim_brutlestir(
-                calc_hybrid(st.session_state["s_ba_v"], st.session_state["s_ba_m"], g_brut),
-                st.session_state["s_ba_t"], secilen_oran) / 12
+            ba_ham  = yardim_brutlestir(calc_hybrid(st.session_state["s_ba_v"], st.session_state["s_ba_m"], g_brut),
+                                        st.session_state["s_ba_t"], secilen_oran)
+            ay_bayram = ayliklandir(ba_ham, st.session_state["s_ba_per"]) * zam_carpan
     with cs8:
         with st.container(border=True):
-            st.write("🏆 **Prim**")
-            st.selectbox("Mod", ["Maktu", "Katsayı (Gün)", "Yüzde (%)"], key="s_pr_m")
-            st.radio("", ["Net", "Brüt"], horizontal=True, key="s_pr_t")
+            sosyal_baslik("🏆 **Prim**", "s_pr_per", "s_pr_not")
+            st.selectbox("Mod", ["Maktu","Katsayı (Gün)","Yüzde (%)"], key="s_pr_m")
+            st.radio("", ["Net","Brüt"], horizontal=True, key="s_pr_t")
             st.number_input("Değer", min_value=0.0, key="s_pr_v")
-            ay_prim = yardim_brutlestir(
-                calc_hybrid(st.session_state["s_pr_v"], st.session_state["s_pr_m"], g_brut),
-                st.session_state["s_pr_t"], secilen_oran)
+            pr_ham  = yardim_brutlestir(calc_hybrid(st.session_state["s_pr_v"], st.session_state["s_pr_m"], g_brut),
+                                        st.session_state["s_pr_t"], secilen_oran)
+            ay_prim = ayliklandir(pr_ham, st.session_state["s_pr_per"]) * zam_carpan
 
     with st.container(border=True):
-        st.number_input("💰 Yıllık İkramiye Günü", min_value=0, key="s_ikramiye")
-        ay_ikramiye = (g_brut * st.session_state["s_ikramiye"]) / 12
+        ik1, ik2 = st.columns([1,2])
+        with ik1: st.number_input("💰 Yıllık İkramiye Günü", min_value=0, key="s_ikramiye")
+        with ik2: st.text_input("Açıklama", key="s_ikramiye_not", placeholder="Not...")
+        ay_ikramiye = (g_brut * st.session_state["s_ikramiye"]) / 12 * zam_carpan
 
+    # ── AİLE & ÇOCUK ──────────────────────────────────────────
     with st.container(border=True):
-        st.write("👨‍👩‍👧‍👦 **Aile & Çocuk**")
+        st.write("👨‍👩‍👧‍👦 **Aile & Çocuk Yardımları**")
         cac1, cac2 = st.columns(2)
         with cac1:
-            st.checkbox("657 Aile Yardımı", key="s_yasal_aile")
-            st.checkbox("Muafiyet Aile", key="s_muaf_aile")
-            st.number_input("Maktu Aile", min_value=0.0, key="s_maktu_aile")
+            st.markdown("**Aile**")
+            al1, al2 = st.columns(2)
+            with al1: st.checkbox("657 Aile Yardımı", key="s_yasal_aile")
+            with al2:
+                if st.session_state["s_yasal_aile"]:
+                    st.number_input("Ödeme Oranı (%)", min_value=1.0, max_value=100.0,
+                                    step=1.0, key="s_yasal_aile_pct", help="%100 = tam yasal tutar")
+            al3, al4 = st.columns(2)
+            with al3: st.checkbox("Muafiyet Aile", key="s_muaf_aile")
+            with al4:
+                if st.session_state["s_muaf_aile"]:
+                    st.number_input("Ödeme Oranı (%)", min_value=1.0, max_value=100.0,
+                                    step=1.0, key="s_muaf_aile_pct", help="%100 = tam muafiyet tutarı")
+            st.number_input("Maktu Aile (TL)", min_value=0.0, key="s_maktu_aile")
+            st.text_input("Aile Notu", key="s_aile_not", placeholder="Not...")
         with cac2:
-            st.checkbox("657 Çocuk Yardımı", key="s_yasal_cocuk")
-            st.checkbox("Muafiyet Çocuk", key="s_muaf_cocuk")
-            st.number_input("Maktu Çocuk (Birim)", min_value=0.0, key="s_maktu_cocuk")
+            st.markdown("**Çocuk** (2 çocuk baz alınır)")
+            cl1, cl2 = st.columns(2)
+            with cl1: st.checkbox("657 Çocuk Yardımı", key="s_yasal_cocuk")
+            with cl2:
+                if st.session_state["s_yasal_cocuk"]:
+                    st.number_input("Ödeme Oranı (%)", min_value=1.0, max_value=100.0,
+                                    step=1.0, key="s_yasal_cocuk_pct", help="%100 = tam yasal tutar")
+            cl3, cl4 = st.columns(2)
+            with cl3: st.checkbox("Muafiyet Çocuk", key="s_muaf_cocuk")
+            with cl4:
+                if st.session_state["s_muaf_cocuk"]:
+                    st.number_input("Ödeme Oranı (%)", min_value=1.0, max_value=100.0,
+                                    step=1.0, key="s_muaf_cocuk_pct", help="%100 = tam muafiyet tutarı")
+            st.number_input("Maktu Çocuk (Birim TL)", min_value=0.0, key="s_maktu_cocuk")
+            st.text_input("Çocuk Notu", key="s_cocuk_not", placeholder="Not...")
 
     st.divider()
     st.markdown("### ⚡ Vardiya, Gece ve Özel")
@@ -680,20 +705,23 @@ with tab2:
     with cv1:
         with st.container(border=True):
             st.write("🔄 **Vardiya Zammı**")
-            st.selectbox("Hesap Tipi", ["Sabit", "Fiili (195/225)"], key="s_v_hesap")
-            st.selectbox("Birim", ["Maktu", "Yüzde (%)"], key="s_v_mod")
+            st.text_input("Not", key="s_v_not", placeholder="Açıklama...")
+            st.selectbox("Hesap Tipi", ["Sabit","Fiili (195/225)"], key="s_v_hesap")
+            st.selectbox("Birim", ["Maktu","Yüzde (%)"], key="s_v_mod")
             st.number_input("Miktar", min_value=0.0, key="s_v_val")
     with cv2:
         with st.container(border=True):
             st.write("🌙 **Gece Zammı**")
-            st.selectbox("Hesap Tipi", ["Sabit", "Fiili (80/225)"], key="s_g_hesap")
-            st.selectbox("Birim", ["Maktu", "Yüzde (%)"], key="s_g_mod")
+            st.text_input("Not", key="s_g_not", placeholder="Açıklama...")
+            st.selectbox("Hesap Tipi", ["Sabit","Fiili (80/225)"], key="s_g_hesap")
+            st.selectbox("Birim", ["Maktu","Yüzde (%)"], key="s_g_mod")
             st.number_input("Miktar", min_value=0.0, key="s_g_val")
     with cv3:
         with st.container(border=True):
             st.write("➕ **Ek Özel**")
-            st.selectbox("Baz", ["Günlük Ücret", "Aylık Ücret"], key="s_eo_tip")
-            st.selectbox("Birim", ["Katsayı", "Yüzde (%)"], key="s_eo_mod")
+            st.text_input("Not", key="s_eo_not", placeholder="Açıklama...")
+            st.selectbox("Baz", ["Günlük Ücret","Aylık Ücret"], key="s_eo_tip")
+            st.selectbox("Birim", ["Katsayı","Yüzde (%)"], key="s_eo_mod")
             st.number_input("Miktar", min_value=0.0, key="s_eo_val")
 
     st.markdown("### 📈 Denge Ödentisi")
@@ -702,164 +730,167 @@ with tab2:
         with cd1:
             st.checkbox("Denge Ödentisi Uygula", key="s_denge")
             st.number_input("Oran (%)", min_value=0.0, key="s_denge_oran")
-        with cd2:
-            st.caption("Baz: Ücret + İkramiye + Gece + Vardiya")
+        with cd2: st.caption("Baz: Ücret + İkramiye + Gece + Vardiya")
 
-    # --- HESAPLAMALAR ---
+    # ── HESAPLAMALAR ──────────────────────────────────────────
     ek1_per = st.session_state["s_ek1_per"]
     ek2_per = st.session_state["s_ek2_per"]
-    ay_ek1  = calc_hybrid(st.session_state["s_ek1_val"], st.session_state["s_ek1_mod"], g_brut) if ek1_per == "Aylık" \
+    ay_ek1  = calc_hybrid(st.session_state["s_ek1_val"], st.session_state["s_ek1_mod"], g_brut) if ek1_per=="Aylık" \
               else calc_hybrid(st.session_state["s_ek1_val"], st.session_state["s_ek1_mod"], g_brut) / 12
-    ay_ek2  = calc_hybrid(st.session_state["s_ek2_val"], st.session_state["s_ek2_mod"], g_brut) if ek2_per == "Aylık" \
+    ay_ek2  = calc_hybrid(st.session_state["s_ek2_val"], st.session_state["s_ek2_mod"], g_brut) if ek2_per=="Aylık" \
               else calc_hybrid(st.session_state["s_ek2_val"], st.session_state["s_ek2_mod"], g_brut) / 12
 
-    yasal_aile_t  = aile_yasal_sabit if st.session_state["s_yasal_aile"] else 0
-    muaf_aile_t   = muafiyet_aile    if st.session_state["s_muaf_aile"]  else 0
-    yasal_cocuk_t = (cocuk_6_ustu * 2) if st.session_state["s_yasal_cocuk"] else 0
-    muaf_cocuk_t  = muafiyet_cocuk   if st.session_state["s_muaf_cocuk"] else 0
+    # Aile/Çocuk hesabı (yüzde oranı uygulanır)
+    yasal_aile_t  = aile_yasal_sabit * (st.session_state["s_yasal_aile_pct"]/100) if st.session_state["s_yasal_aile"] else 0
+    muaf_aile_t   = muafiyet_aile    * (st.session_state["s_muaf_aile_pct"]/100)  if st.session_state["s_muaf_aile"]  else 0
+    yasal_cocuk_t = (cocuk_6_ustu*2) * (st.session_state["s_yasal_cocuk_pct"]/100) if st.session_state["s_yasal_cocuk"] else 0
+    muaf_cocuk_t  = muafiyet_cocuk   * (st.session_state["s_muaf_cocuk_pct"]/100)  if st.session_state["s_muaf_cocuk"]  else 0
     ay_aile_cocuk = (yasal_aile_t + muaf_aile_t + st.session_state["s_maktu_aile"] +
-                     yasal_cocuk_t + muaf_cocuk_t + st.session_state["s_maktu_cocuk"] * 2)
+                     yasal_cocuk_t + muaf_cocuk_t + st.session_state["s_maktu_cocuk"]*2)
 
     v_tutar = calc_hybrid(st.session_state["s_v_val"], st.session_state["s_v_mod"], g_brut)
-    if st.session_state["s_v_hesap"] == "Fiili (195/225)":
-        v_tutar = v_tutar * 195 / 225
+    if st.session_state["s_v_hesap"] == "Fiili (195/225)": v_tutar = v_tutar * 195/225
 
     g_tutar = calc_hybrid(st.session_state["s_g_val"], st.session_state["s_g_mod"], g_brut)
-    if st.session_state["s_g_hesap"] == "Fiili (80/225)":
-        g_tutar = g_tutar * 80 / 225
+    if st.session_state["s_g_hesap"] == "Fiili (80/225)": g_tutar = g_tutar * 80/225
 
-    eo_val = st.session_state["s_eo_val"]
-    eo_mod = st.session_state["s_eo_mod"]
-    if st.session_state["s_eo_tip"] == "Günlük Ücret":
-        ay_ek_ozel = g_brut * (eo_val if eo_mod == "Katsayı" else eo_val / 100)
-    else:
-        ay_ek_ozel = a_brut * (eo_val if eo_mod == "Katsayı" else eo_val / 100)
+    eo_val = st.session_state["s_eo_val"]; eo_mod = st.session_state["s_eo_mod"]
+    ay_ek_ozel = g_brut * (eo_val if eo_mod=="Katsayı" else eo_val/100) \
+                 if st.session_state["s_eo_tip"]=="Günlük Ücret" \
+                 else a_brut * (eo_val if eo_mod=="Katsayı" else eo_val/100)
 
     if st.session_state["s_denge"]:
-        baz      = a_brut + ay_ikramiye + g_tutar + v_tutar
-        ay_denge = baz * (st.session_state["s_denge_oran"] / 100)
+        baz = a_brut + ay_ikramiye + g_tutar + v_tutar
+        ay_denge = baz * (st.session_state["s_denge_oran"]/100)
         st.metric("Denge Ödentisi", f"{ay_denge:,.2f} TL")
-    else:
-        ay_denge = 0.0
+    else: ay_denge = 0.0
 
-    toplam_sosyal = (
-        gida + yakacak + ay_izin + ay_bayram + ay_prim +
-        (giyim + ayakkabi + yilbasi) / 12 +
-        ay_ikramiye + ay_aile_cocuk +
-        v_tutar + g_tutar + ay_ek_ozel + ay_denge
-    )
+    toplam_sosyal = (gida + yakacak + ay_izin + ay_bayram + ay_prim +
+                     giyim + ayakkabi + yilbasi +
+                     ay_ikramiye + ay_aile_cocuk +
+                     v_tutar + g_tutar + ay_ek_ozel + ay_denge)
     t_maliyet = a_brut + ay_ek1 + ay_ek2 + toplam_sosyal
 
-    # --- SONUÇLAR ---
+    # ── SONUÇLAR ──────────────────────────────────────────────
     st.divider()
     r1, r2, r3 = st.columns(3)
     r1.metric("💼 Toplam Aylık Maliyet", f"{t_maliyet:,.2f} TL")
     r2.metric("🎁 Sosyal Paket", f"{toplam_sosyal:,.2f} TL")
     r3.metric("💵 Ana Maaş (Brüt)", f"{a_brut:,.2f} TL")
-
-    detay = pd.DataFrame({
+    st.table(pd.DataFrame({
         "Kalem": ["Ana Maaş", "Ek Ödemeler (1+2)", "Sosyal Paket", "Vardiya/Gece/Özel"],
-        "Aylık Tutar (TL)": [
-            f"{a_brut:,.2f}",
-            f"{ay_ek1 + ay_ek2:,.2f}",
-            f"{toplam_sosyal - v_tutar - g_tutar - ay_ek_ozel:,.2f}",
-            f"{v_tutar + g_tutar + ay_ek_ozel:,.2f}"
-        ]
-    })
-    st.table(detay)
+        "Aylık Tutar (TL)": [f"{a_brut:,.2f}", f"{ay_ek1+ay_ek2:,.2f}",
+                              f"{toplam_sosyal-v_tutar-g_tutar-ay_ek_ozel:,.2f}",
+                              f"{v_tutar+g_tutar+ay_ek_ozel:,.2f}"]
+    }))
 
-    # --- KAYIT VE İNDİRME ---
+    # ── KAYIT ──────────────────────────────────────────────────
     st.divider()
     kb1, kb2 = st.columns(2)
     with kb1:
         if st.button("💾 Veritabanına Kaydet"):
             try:
-                sheet = get_sheet()
-                baslik_guncelle(sheet)
+                sheet = get_sheet(); baslik_guncelle(sheet)
                 tis_bas_str = st.session_state["s_tis_bas"].strftime("%d/%m/%Y")
                 tis_bit_str = st.session_state["s_tis_bit"].strftime("%d/%m/%Y")
                 zam_ozet = " | ".join([
-                    f"{d['ay']} {d['yil']}: " + ", ".join([
-                        f"%{k['deger']}" if k['tip'] == "Yüzde (%)" else f"{k['deger']:.0f}TL"
-                        for k in d["kalemler"]
-                    ]) + (" ✅" if d.get("uygula") else "")
+                    f"{d['ay']} {d['yil']}: " +
+                    ", ".join([f"%{k['deger']}" if k['tip']=="Yüzde (%)" else f"{k['deger']:.0f}TL" for k in d["kalemler"]]) +
+                    (" ✅" if d.get("uygula") else "")
                     for d in st.session_state.get("s_zam_verileri", [])
                 ])
+                # Zam verilerini JSON olarak sakla
+                zam_json = json.dumps(st.session_state.get("s_zam_verileri", []),
+                                      ensure_ascii=False, default=str)
                 row = [
-                    datetime.now().strftime("%d/%m/%Y %H:%M"),
-                    st.session_state["active_user"],
-                    st.session_state["s_isyeri"],
-                    st.session_state["s_isyeri_tipi"],
-                    st.session_state["s_grev"],
-                    str(st.session_state["s_yabanci"]),
-                    st.session_state["s_ulke"],
-                    st.session_state["s_isv_sendika"],
-                    st.session_state["s_sektor"],
-                    st.session_state["s_grup"],
+                    datetime.now().strftime("%d/%m/%Y %H:%M"), st.session_state["active_user"],
+                    st.session_state["s_isyeri"], st.session_state["s_isyeri_tipi"],
+                    st.session_state["s_grev"], str(st.session_state["s_yabanci"]),
+                    st.session_state["s_ulke"], st.session_state["s_isv_sendika"],
+                    st.session_state["s_sektor"], st.session_state["s_grup"],
                     ", ".join(st.session_state["s_subeler"]),
-                    st.session_state["s_uye"],
-                    st.session_state["s_calisan"],
-                    tis_bas_str, tis_bit_str,
-                    zam_ozet,
+                    st.session_state["s_uye"], st.session_state["s_calisan"],
+                    tis_bas_str, tis_bit_str, zam_ozet,
                     st.session_state["s_u_tipi"],  sf(st.session_state["s_u_tutar"]),
                     st.session_state["s_ek1_mod"], sf(st.session_state["s_ek1_val"]), st.session_state["s_ek1_per"],
                     st.session_state["s_ek2_mod"], sf(st.session_state["s_ek2_val"]), st.session_state["s_ek2_per"],
-                    st.session_state["s_gida_tip"],    sf(st.session_state["s_gida_val"]),
-                    st.session_state["s_yakacak_tip"], sf(st.session_state["s_yakacak_val"]),
-                    st.session_state["s_giyim_tip"],   sf(st.session_state["s_giyim_val"]),
-                    st.session_state["s_ayakkabi_tip"],sf(st.session_state["s_ayakkabi_val"]),
+                    # Gıda
+                    st.session_state["s_gida_tip"], sf(st.session_state["s_gida_val"]),
+                    st.session_state["s_gida_per"], st.session_state["s_gida_not"],
+                    # Yakacak
+                    st.session_state["s_yakacak_mod"], st.session_state["s_yakacak_kdv"],
+                    sf(st.session_state["s_yakacak_val"]), sf(st.session_state["s_yakacak_m3"]),
+                    sf(st.session_state["s_yakacak_birim"]),
+                    st.session_state["s_yakacak_per"], st.session_state["s_yakacak_not"],
+                    # Giyim
+                    st.session_state["s_giyim_tip"], sf(st.session_state["s_giyim_val"]),
+                    st.session_state["s_giyim_per"], st.session_state["s_giyim_not"],
+                    # Ayakkabı
+                    st.session_state["s_ayakkabi_tip"], sf(st.session_state["s_ayakkabi_val"]),
+                    st.session_state["s_ayakkabi_per"], st.session_state["s_ayakkabi_not"],
+                    # Yılbaşı
                     st.session_state["s_yilbasi_tip"], sf(st.session_state["s_yilbasi_val"]),
-                    st.session_state["s_iz_m"], st.session_state["s_iz_t"], sf(st.session_state["s_iz_v"]),
-                    st.session_state["s_ba_m"], st.session_state["s_ba_t"], sf(st.session_state["s_ba_v"]),
-                    st.session_state["s_pr_m"], st.session_state["s_pr_t"], sf(st.session_state["s_pr_v"]),
-                    st.session_state["s_ikramiye"],
-                    str(st.session_state["s_yasal_aile"]), str(st.session_state["s_muaf_aile"]),
-                    sf(st.session_state["s_maktu_aile"]),
-                    str(st.session_state["s_yasal_cocuk"]), str(st.session_state["s_muaf_cocuk"]),
-                    sf(st.session_state["s_maktu_cocuk"]),
-                    st.session_state["s_v_hesap"], st.session_state["s_v_mod"], sf(st.session_state["s_v_val"]),
-                    st.session_state["s_g_hesap"], st.session_state["s_g_mod"], sf(st.session_state["s_g_val"]),
-                    st.session_state["s_eo_tip"],  st.session_state["s_eo_mod"], sf(st.session_state["s_eo_val"]),
+                    st.session_state["s_yilbasi_per"], st.session_state["s_yilbasi_not"],
+                    # İzin
+                    st.session_state["s_iz_m"], st.session_state["s_iz_t"],
+                    sf(st.session_state["s_iz_v"]), st.session_state["s_iz_per"], st.session_state["s_iz_not"],
+                    # Bayram
+                    st.session_state["s_ba_m"], st.session_state["s_ba_t"],
+                    sf(st.session_state["s_ba_v"]), st.session_state["s_ba_per"], st.session_state["s_ba_not"],
+                    # Prim
+                    st.session_state["s_pr_m"], st.session_state["s_pr_t"],
+                    sf(st.session_state["s_pr_v"]), st.session_state["s_pr_per"], st.session_state["s_pr_not"],
+                    # İkramiye
+                    st.session_state["s_ikramiye"], st.session_state["s_ikramiye_not"],
+                    # Aile
+                    str(st.session_state["s_yasal_aile"]), sf(st.session_state["s_yasal_aile_pct"]),
+                    str(st.session_state["s_muaf_aile"]),  sf(st.session_state["s_muaf_aile_pct"]),
+                    sf(st.session_state["s_maktu_aile"]),  st.session_state["s_aile_not"],
+                    # Çocuk
+                    str(st.session_state["s_yasal_cocuk"]), sf(st.session_state["s_yasal_cocuk_pct"]),
+                    str(st.session_state["s_muaf_cocuk"]),  sf(st.session_state["s_muaf_cocuk_pct"]),
+                    sf(st.session_state["s_maktu_cocuk"]),  st.session_state["s_cocuk_not"],
+                    # Vardiya, Gece, Ek özel
+                    st.session_state["s_v_hesap"], st.session_state["s_v_mod"],
+                    sf(st.session_state["s_v_val"]), st.session_state["s_v_not"],
+                    st.session_state["s_g_hesap"], st.session_state["s_g_mod"],
+                    sf(st.session_state["s_g_val"]), st.session_state["s_g_not"],
+                    st.session_state["s_eo_tip"], st.session_state["s_eo_mod"],
+                    sf(st.session_state["s_eo_val"]), st.session_state["s_eo_not"],
                     str(st.session_state["s_denge"]), sf(st.session_state["s_denge_oran"]),
+                    sf(st.session_state["s_sosyal_zam_pct"]),
+                    zam_json,
                     sf(a_brut), sf(toplam_sosyal), sf(t_maliyet)
                 ]
                 sheet.append_row(row)
                 verileri_getir.clear()
-                st.success("✅ Kaydedildi!")
-                st.balloons()
+                st.success("✅ Kaydedildi!"); st.balloons()
             except Exception as e:
                 st.error(f"Kayıt hatası: {e}")
 
     with kb2:
         rapor = {
             "Parametre": [
-                "Uzman", "İşyeri", "Sektör", "Grup", "Şubeler",
-                "TİS Başlangıç", "TİS Bitiş", "Üye Sayısı", "Grev Durumu",
-                "Ana Maaş (Brüt)", "Gıda", "Yakacak",
-                "Giyim (Aylık)", "Ayakkabı (Aylık)", "Yılbaşı (Aylık)",
-                "İzin (Aylık)", "Bayram (Aylık)", "Prim (Aylık)", "İkramiye (Aylık)",
-                "Aile & Çocuk", "Vardiya", "Gece Zammı", "Özel Ek", "Denge",
-                "Sosyal Paket", "Toplam Maliyet"
+                "Uzman","İşyeri","Sektör","Grup","Şubeler","TİS Başlangıç","TİS Bitiş",
+                "Üye Sayısı","Grev Durumu","Ana Maaş (Brüt)","Gıda","Yakacak",
+                "Giyim","Ayakkabı","Yılbaşı","İzin","Bayram","Prim","İkramiye",
+                "Aile & Çocuk","Vardiya","Gece Zammı","Özel Ek","Denge",
+                "Sosyal Paket","Toplam Maliyet"
             ],
             "Değer": [
-                st.session_state["active_user"],
-                st.session_state["s_isyeri"],
-                st.session_state["s_sektor"],
-                st.session_state["s_grup"],
+                st.session_state["active_user"], st.session_state["s_isyeri"],
+                st.session_state["s_sektor"], st.session_state["s_grup"],
                 ", ".join(st.session_state["s_subeler"]),
                 st.session_state["s_tis_bas"].strftime("%d/%m/%Y"),
                 st.session_state["s_tis_bit"].strftime("%d/%m/%Y"),
-                st.session_state["s_uye"],
-                st.session_state["s_grev"],
-                f"{a_brut:,.2f} TL",
-                f"{gida:,.2f} TL",         f"{yakacak:,.2f} TL",
-                f"{giyim/12:,.2f} TL",     f"{ayakkabi/12:,.2f} TL",
-                f"{yilbasi/12:,.2f} TL",   f"{ay_izin:,.2f} TL",
-                f"{ay_bayram:,.2f} TL",    f"{ay_prim:,.2f} TL",
-                f"{ay_ikramiye:,.2f} TL",  f"{ay_aile_cocuk:,.2f} TL",
-                f"{v_tutar:,.2f} TL",      f"{g_tutar:,.2f} TL",
-                f"{ay_ek_ozel:,.2f} TL",   f"{ay_denge:,.2f} TL",
-                f"{toplam_sosyal:,.2f} TL",f"{t_maliyet:,.2f} TL"
+                st.session_state["s_uye"], st.session_state["s_grev"],
+                f"{a_brut:,.2f} TL", f"{gida:,.2f} TL", f"{yakacak:,.2f} TL",
+                f"{giyim:,.2f} TL",  f"{ayakkabi:,.2f} TL", f"{yilbasi:,.2f} TL",
+                f"{ay_izin:,.2f} TL", f"{ay_bayram:,.2f} TL",
+                f"{ay_prim:,.2f} TL", f"{ay_ikramiye:,.2f} TL",
+                f"{ay_aile_cocuk:,.2f} TL", f"{v_tutar:,.2f} TL",
+                f"{g_tutar:,.2f} TL", f"{ay_ek_ozel:,.2f} TL", f"{ay_denge:,.2f} TL",
+                f"{toplam_sosyal:,.2f} TL", f"{t_maliyet:,.2f} TL"
             ]
         }
         rapor_df = pd.DataFrame(rapor)
@@ -867,146 +898,110 @@ with tab2:
         with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
             rapor_df.to_excel(writer, index=False, sheet_name='TİS_Rapor')
             writer.sheets['TİS_Rapor'].set_column('A:B', 30)
-        st.download_button(
-            "📥 Excel Raporu İndir",
-            data=output.getvalue(),
+        st.download_button("📥 Excel Raporu İndir", data=output.getvalue(),
             file_name=f"{st.session_state['s_isyeri']}_TIS_{datetime.now().strftime('%Y%m%d')}.xlsx",
-            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-        )
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
 
 # ============================================================
-# TAB 3 — KARŞILAŞTIRMA VE İSTATİSTİK
+# TAB 3
 # ============================================================
 with tab3:
     st.header("📊 Karşılaştırma ve İstatistik")
-
     df3 = verileri_getir()
-
     if df3.empty:
-        st.info("Henüz kayıtlı veri yok. Önce işyeri kaydedin.")
+        st.info("Henüz kayıtlı veri yok.")
     else:
         for col in ["Ana Maaş (Brüt)", "Sosyal Paket", "Toplam Maliyet"]:
             if col in df3.columns:
-                df3[col] = pd.to_numeric(df3[col].astype(str).str.replace(",", "."), errors='coerce')
+                df3[col] = pd.to_numeric(df3[col].astype(str).str.replace(",","."), errors='coerce')
 
         st.subheader("🔢 Genel Özet")
         og1, og2, og3, og4 = st.columns(4)
         og1.metric("Toplam İşyeri", len(df3))
         if "Üye Sayısı" in df3.columns:
-            try:
-                toplam_uye = pd.to_numeric(df3["Üye Sayısı"], errors='coerce').sum()
-                og2.metric("Toplam Üye", f"{int(toplam_uye):,}")
-            except:
-                og2.metric("Toplam Üye", "-")
+            try: og2.metric("Toplam Üye", f"{int(pd.to_numeric(df3['Üye Sayısı'], errors='coerce').sum()):,}")
+            except: og2.metric("Toplam Üye", "-")
         if "Ana Maaş (Brüt)" in df3.columns:
             og3.metric("Ort. Çıplak Ücret", f"{df3['Ana Maaş (Brüt)'].mean():,.0f} TL")
         if "Toplam Maliyet" in df3.columns:
             og4.metric("Ort. Giydirilmiş Ücret", f"{df3['Toplam Maliyet'].mean():,.0f} TL")
 
         st.divider()
-
         st.subheader("🏙️ Şube Bazlı Karşılaştırma")
         if "Şubeler" in df3.columns and "Ana Maaş (Brüt)" in df3.columns:
             sube_rows = []
             for _, row in df3.iterrows():
-                for s in str(row.get("Şubeler", "")).split(","):
+                for s in str(row.get("Şubeler","")).split(","):
                     s = s.strip()
-                    if s:
-                        sube_rows.append({"Şube": s,
-                                          "Çıplak": row.get("Ana Maaş (Brüt)", 0),
-                                          "Giydirilmiş": row.get("Toplam Maliyet", 0)})
+                    if s: sube_rows.append({"Şube":s,"Çıplak":row.get("Ana Maaş (Brüt)",0),"Giydirilmiş":row.get("Toplam Maliyet",0)})
             if sube_rows:
                 sube_df   = pd.DataFrame(sube_rows)
                 sube_ozet = sube_df.groupby("Şube").agg(
-                    İşyeri_Sayısı=("Çıplak", "count"),
-                    Ort_Çıplak=("Çıplak", "mean"),
-                    Ort_Giydirilmiş=("Giydirilmiş", "mean")
+                    İşyeri_Sayısı=("Çıplak","count"), Ort_Çıplak=("Çıplak","mean"), Ort_Giydirilmiş=("Giydirilmiş","mean")
                 ).reset_index().sort_values("Ort_Çıplak", ascending=False)
                 sube_ozet["Ort_Çıplak"]      = sube_ozet["Ort_Çıplak"].map("{:,.0f} TL".format)
                 sube_ozet["Ort_Giydirilmiş"] = sube_ozet["Ort_Giydirilmiş"].map("{:,.0f} TL".format)
-                sube_ozet.columns = ["Şube", "İşyeri Sayısı", "Ort. Çıplak Ücret", "Ort. Giydirilmiş Ücret"]
+                sube_ozet.columns = ["Şube","İşyeri Sayısı","Ort. Çıplak Ücret","Ort. Giydirilmiş Ücret"]
                 st.dataframe(sube_ozet, use_container_width=True, hide_index=True)
 
         st.divider()
-
-        st.subheader("🏭 Sektör / Grup Bazlı Karşılaştırma")
+        st.subheader("🏭 Sektör / Grup Bazlı")
         scol1, scol2 = st.columns(2)
         with scol1:
-            st.markdown("**Sektör (Özel / Kamu)**")
-            if "Sektör" in df3.columns and "Ana Maaş (Brüt)" in df3.columns:
+            st.markdown("**Sektör**")
+            if "Sektör" in df3.columns:
                 sek_ozet = df3.groupby("Sektör").agg(
-                    İşyeri=("Ana Maaş (Brüt)", "count"),
-                    Ort_Çıplak=("Ana Maaş (Brüt)", "mean"),
-                    Ort_Giydirilmiş=("Toplam Maliyet", "mean")
+                    İşyeri=("Ana Maaş (Brüt)","count"), Ort_Çıplak=("Ana Maaş (Brüt)","mean"), Ort_Giydirilmiş=("Toplam Maliyet","mean")
                 ).reset_index().sort_values("Ort_Çıplak", ascending=False)
                 sek_ozet["Ort_Çıplak"]      = sek_ozet["Ort_Çıplak"].map("{:,.0f} TL".format)
                 sek_ozet["Ort_Giydirilmiş"] = sek_ozet["Ort_Giydirilmiş"].map("{:,.0f} TL".format)
-                sek_ozet.columns = ["Sektör", "İşyeri Sayısı", "Ort. Çıplak Ücret", "Ort. Giydirilmiş Ücret"]
+                sek_ozet.columns = ["Sektör","İşyeri Sayısı","Ort. Çıplak","Ort. Giydirilmiş"]
                 st.dataframe(sek_ozet, use_container_width=True, hide_index=True)
         with scol2:
             st.markdown("**Grup**")
-            if "Grup" in df3.columns and "Ana Maaş (Brüt)" in df3.columns:
+            if "Grup" in df3.columns:
                 grup_ozet = df3.groupby("Grup").agg(
-                    İşyeri=("Ana Maaş (Brüt)", "count"),
-                    Ort_Çıplak=("Ana Maaş (Brüt)", "mean"),
-                    Ort_Giydirilmiş=("Toplam Maliyet", "mean")
+                    İşyeri=("Ana Maaş (Brüt)","count"), Ort_Çıplak=("Ana Maaş (Brüt)","mean"), Ort_Giydirilmiş=("Toplam Maliyet","mean")
                 ).reset_index().sort_values("Ort_Çıplak", ascending=False)
                 grup_ozet["Ort_Çıplak"]      = grup_ozet["Ort_Çıplak"].map("{:,.0f} TL".format)
                 grup_ozet["Ort_Giydirilmiş"] = grup_ozet["Ort_Giydirilmiş"].map("{:,.0f} TL".format)
-                grup_ozet.columns = ["Grup", "İşyeri Sayısı", "Ort. Çıplak Ücret", "Ort. Giydirilmiş Ücret"]
+                grup_ozet.columns = ["Grup","İşyeri Sayısı","Ort. Çıplak","Ort. Giydirilmiş"]
                 st.dataframe(grup_ozet, use_container_width=True, hide_index=True)
 
         st.divider()
-
         st.subheader("🔍 İşyeri Karşılaştırması")
         if "İşyeri" in df3.columns:
             secilen = st.selectbox("İşyeri Seç", df3["İşyeri"].dropna().unique().tolist(), key="tab3_isyeri_sec")
             if secilen:
-                sec_row           = df3[df3["İşyeri"] == secilen].iloc[0]
+                sec_row           = df3[df3["İşyeri"]==secilen].iloc[0]
                 genel_ort_maas    = df3["Ana Maaş (Brüt)"].mean()
                 genel_ort_maliyet = df3["Toplam Maliyet"].mean()
-                isyeri_maas       = float(str(sec_row.get("Ana Maaş (Brüt)", 0)).replace(",", ".") or 0)
-                isyeri_maliyet    = float(str(sec_row.get("Toplam Maliyet", 0)).replace(",", ".") or 0)
-
+                isyeri_maas    = float(str(sec_row.get("Ana Maaş (Brüt)",0)).replace(",",".") or 0)
+                isyeri_maliyet = float(str(sec_row.get("Toplam Maliyet",0)).replace(",",".") or 0)
                 kk1, kk2 = st.columns(2)
-                with kk1:
-                    st.metric("Çıplak Ücret", f"{isyeri_maas:,.0f} TL",
-                              delta=f"{isyeri_maas - genel_ort_maas:+,.0f} TL (genel ort.)")
-                with kk2:
-                    st.metric("Giydirilmiş Ücret", f"{isyeri_maliyet:,.0f} TL",
-                              delta=f"{isyeri_maliyet - genel_ort_maliyet:+,.0f} TL (genel ort.)")
-
+                with kk1: st.metric("Çıplak Ücret", f"{isyeri_maas:,.0f} TL",
+                                     delta=f"{isyeri_maas-genel_ort_maas:+,.0f} TL (genel ort.)")
+                with kk2: st.metric("Giydirilmiş Ücret", f"{isyeri_maliyet:,.0f} TL",
+                                     delta=f"{isyeri_maliyet-genel_ort_maliyet:+,.0f} TL (genel ort.)")
                 if "Sektör" in df3.columns and sec_row.get("Sektör"):
-                    sek    = sec_row.get("Sektör")
-                    sek_df = df3[df3["Sektör"] == sek]
+                    sek = sec_row.get("Sektör"); sek_df = df3[df3["Sektör"]==sek]
                     sk1, sk2 = st.columns(2)
-                    with sk1:
-                        st.metric(f"{sek} Sektör Ort. — Çıplak",
-                                  f"{sek_df['Ana Maaş (Brüt)'].mean():,.0f} TL",
-                                  delta=f"{isyeri_maas - sek_df['Ana Maaş (Brüt)'].mean():+,.0f} TL")
-                    with sk2:
-                        st.metric(f"{sek} Sektör Ort. — Giydirilmiş",
-                                  f"{sek_df['Toplam Maliyet'].mean():,.0f} TL",
-                                  delta=f"{isyeri_maliyet - sek_df['Toplam Maliyet'].mean():+,.0f} TL")
-
+                    with sk1: st.metric(f"{sek} Ort. Çıplak", f"{sek_df['Ana Maaş (Brüt)'].mean():,.0f} TL",
+                                         delta=f"{isyeri_maas-sek_df['Ana Maaş (Brüt)'].mean():+,.0f} TL")
+                    with sk2: st.metric(f"{sek} Ort. Giydirilmiş", f"{sek_df['Toplam Maliyet'].mean():,.0f} TL",
+                                         delta=f"{isyeri_maliyet-sek_df['Toplam Maliyet'].mean():+,.0f} TL")
                 if "Grup" in df3.columns and sec_row.get("Grup"):
-                    grp    = sec_row.get("Grup")
-                    grp_df = df3[df3["Grup"] == grp]
+                    grp = sec_row.get("Grup"); grp_df = df3[df3["Grup"]==grp]
                     gk1, gk2 = st.columns(2)
-                    with gk1:
-                        st.metric(f"{grp} Grubu Ort. — Çıplak",
-                                  f"{grp_df['Ana Maaş (Brüt)'].mean():,.0f} TL",
-                                  delta=f"{isyeri_maas - grp_df['Ana Maaş (Brüt)'].mean():+,.0f} TL")
-                    with gk2:
-                        st.metric(f"{grp} Grubu Ort. — Giydirilmiş",
-                                  f"{grp_df['Toplam Maliyet'].mean():,.0f} TL",
-                                  delta=f"{isyeri_maliyet - grp_df['Toplam Maliyet'].mean():+,.0f} TL")
+                    with gk1: st.metric(f"{grp} Grubu Ort. Çıplak", f"{grp_df['Ana Maaş (Brüt)'].mean():,.0f} TL",
+                                         delta=f"{isyeri_maas-grp_df['Ana Maaş (Brüt)'].mean():+,.0f} TL")
+                    with gk2: st.metric(f"{grp} Grubu Ort. Giydirilmiş", f"{grp_df['Toplam Maliyet'].mean():,.0f} TL",
+                                         delta=f"{isyeri_maliyet-grp_df['Toplam Maliyet'].mean():+,.0f} TL")
 
         st.divider()
-
         st.subheader("📋 Tüm Kayıtlar")
-        goster_cols = [c for c in ["İşyeri", "Sektör", "Grup", "Şubeler", "Üye Sayısı",
-                                    "TİS Başlangıç", "TİS Bitiş",
-                                    "Ana Maaş (Brüt)", "Sosyal Paket", "Toplam Maliyet"] if c in df3.columns]
+        goster_cols = [c for c in ["İşyeri","Sektör","Grup","Şubeler","Üye Sayısı",
+                                    "TİS Başlangıç","TİS Bitiş","Ana Maaş (Brüt)","Sosyal Paket","Toplam Maliyet"]
+                       if c in df3.columns]
         st.dataframe(df3[goster_cols].sort_values("Toplam Maliyet", ascending=False),
                      use_container_width=True, hide_index=True)
