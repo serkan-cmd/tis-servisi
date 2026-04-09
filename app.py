@@ -196,7 +196,9 @@ def verileri_getir():
         creds = ServiceAccountCredentials.from_json_keyfile_dict(dict(s), scope)
         client = gspread.authorize(creds)
         sheet = client.open_by_key(SHEET_KEY).sheet1
-        data = sheet.get_all_records(head=1)
+        data = sheet.get_all_records(
+            expected_headers=SHEET_HEADERS,
+            head=1)
         return pd.DataFrame(data)
     except Exception as e:
         st.error(f"Veri çekilemedi: {e}")
