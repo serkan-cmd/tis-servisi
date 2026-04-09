@@ -110,6 +110,16 @@ DEFAULTS = {
     "s_denge": False, "s_denge_oran": 11.0,
     # Toplu sosyal zam
     "s_sosyal_zam_pct": 0.0,
+    # Bireysel sosyal artış oranları (%)
+    "s_gida_zam": 0.0,
+    "s_yakacak_zam": 0.0,
+    "s_giyim_zam": 0.0,
+    "s_ayakkabi_zam": 0.0,
+    "s_yilbasi_zam": 0.0,
+    "s_iz_zam": 0.0,
+    "s_ba_zam": 0.0,
+    "s_pr_zam": 0.0,
+    "s_ikramiye_zam": 0.0,
 }
 
 # ============================================================
@@ -277,6 +287,16 @@ def yukle_kayit(r):
     st.session_state["s_denge"]      = rv("Denge Aktif", "False") == "True"
     st.session_state["s_denge_oran"] = rf("Denge Oran", 11.0)
     st.session_state["s_sosyal_zam_pct"] = rf("Sosyal Zam Pct", 0.0)
+    # Bireysel artış oranları (eski kayıtlarda yoksa 0)
+    st.session_state["s_gida_zam"]     = rf("Gida Zam",     0.0)
+    st.session_state["s_yakacak_zam"]  = rf("Yakacak Zam",  0.0)
+    st.session_state["s_giyim_zam"]    = rf("Giyim Zam",    0.0)
+    st.session_state["s_ayakkabi_zam"] = rf("Ayakkabi Zam", 0.0)
+    st.session_state["s_yilbasi_zam"]  = rf("Yilbasi Zam",  0.0)
+    st.session_state["s_iz_zam"]       = rf("Iz Zam",       0.0)
+    st.session_state["s_ba_zam"]       = rf("Ba Zam",       0.0)
+    st.session_state["s_pr_zam"]       = rf("Pr Zam",       0.0)
+    st.session_state["s_ikramiye_zam"] = rf("Ikramiye Zam", 0.0)
     # Zam verilerini JSON'dan yükle
     try:
         zam_json = rv("Zam JSON", "[]")
@@ -369,17 +389,34 @@ def verileri_getir():
         s = st.secrets["connections"]["gsheets"]
         creds = ServiceAccountCredentials.from_json_keyfile_dict(dict(s), scope)
         client = gspread.authorize(creds)
-        sheet = client.open_by_key(SHEET_KEY).sheet1
-        data  = sheet.get_all_records(expected_headers=SHEET_HEADERS, head=1)
-        return pd.DataFrame(data)
+        sheet  = client.open_by_key(SHEET_KEY).sheet1
+        # Başlık uyuşmazlığında graceful fallback
+        try:
+            data = sheet.get_all_records(expected_headers=SHEET_HEADERS, head=1)
+        except Exception:
+            all_vals = sheet.get_all_values()
+            if len(all_vals) < 2:
+                return pd.DataFrame()
+            headers = all_vals[0]
+            rows    = all_vals[1:]
+            data    = [dict(zip(headers, row)) for row in rows]
+        df = pd.DataFrame(data)
+        # Eksik yeni sütunları boş string ile tamamla
+        for col in SHEET_HEADERS:
+            if col not in df.columns:
+                df[col] = ""
+        return df
     except Exception as e:
         st.error(f"Veri çekilemedi: {e}"); return pd.DataFrame()
 
 def baslik_guncelle(sheet):
+    """Veriyi koruyarak başlık satırını günceller."""
     try:
         mevcut = sheet.row_values(1)
-        if mevcut != SHEET_HEADERS:
-            sheet.delete_rows(1); sheet.insert_row(SHEET_HEADERS, 1)
+        if mevcut == SHEET_HEADERS:
+            return
+        sheet.delete_rows(1)
+        sheet.insert_row(SHEET_HEADERS, 1)
     except Exception as e:
         st.warning(f"Başlık güncellenemedi: {e}")
 
@@ -566,101 +603,142 @@ with tab2:
 
     st.markdown("### 🎁 Sosyal Yardımlar")
 
-    # ── YARDIMCI: başlık + periyot + not satırı ──────────────
-    def sosyal_baslik(etiket, per_key, not_key):
-        r1, r2, r3 = st.columns([2, 1, 2])
+    # ── YARDIMCI: başlık + periyot + bireysel artış + not ────
+    def sosyal_baslik(etiket, per_key, not_key, zam_key=None):
+        r1, r2, r3, r4 = st.columns([2, 1, 1, 2])
         with r1: st.write(etiket)
         with r2: st.selectbox("Periyot", ["Aylık", "Yıllık"], key=per_key, label_visibility="collapsed")
-        with r3: st.text_input("Açıklama", key=not_key, placeholder="Not...", label_visibility="collapsed")
+        with r3:
+            if zam_key:
+                st.number_input("+%", min_value=0.0, max_value=500.0, step=0.5,
+                                key=zam_key, label_visibility="collapsed",
+                                help="Bu kaleme özel artış oranı (%)")
+        with r4: st.text_input("Açıklama", key=not_key, placeholder="Not...", label_visibility="collapsed")
+
+    def carpan(zam_key):
+        """Toplu zam + bireysel zam çarpanını döndürür."""
+        bireysel = st.session_state.get(zam_key, 0.0) if zam_key else 0.0
+        return (1 + st.session_state["s_sosyal_zam_pct"] / 100) * (1 + bireysel / 100)
+
+    def goster_artis(baz, son, etiket="Aylık brüt"):
+        """Artış varsa baz ve son tutarı göster."""
+        if abs(son - baz) > 0.01:
+            st.caption(f"{etiket}: {baz:,.2f} → **{son:,.2f} TL**")
+        else:
+            st.caption(f"{etiket}: {son:,.2f} TL")
 
     cs1, cs2 = st.columns(2)
     with cs1:
         with st.container(border=True):
-            sosyal_baslik("🍞 **Gıda**", "s_gida_per", "s_gida_not")
+            sosyal_baslik("🍞 **Gıda**", "s_gida_per", "s_gida_not", "s_gida_zam")
             st.radio("", ["Net", "Brüt"], horizontal=True, key="s_gida_tip")
             st.number_input("Tutar", min_value=0.0, key="s_gida_val")
             gida_ham = yardim_brutlestir(st.session_state["s_gida_val"], st.session_state["s_gida_tip"], secilen_oran)
-            gida     = ayliklandir(gida_ham, st.session_state["s_gida_per"]) * zam_carpan
+            gida_baz = ayliklandir(gida_ham, st.session_state["s_gida_per"])
+            gida     = gida_baz * carpan("s_gida_zam")
+            goster_artis(gida_baz, gida)
 
     with cs2:
         with st.container(border=True):
-            st.write("🔥 **Yakacak**")
-            yak_r1, yak_r2, yak_r3 = st.columns([1, 1, 2])
-            with yak_r1: st.selectbox("Periyot", ["Aylık","Yıllık"], key="s_yakacak_per", label_visibility="collapsed")
-            with yak_r2: st.selectbox("Mod", ["Maktu","Metreküp"], key="s_yakacak_mod", label_visibility="collapsed")
-            with yak_r3: st.text_input("Açıklama", key="s_yakacak_not", placeholder="Not...", label_visibility="collapsed")
+            yak_r1, yak_r2, yak_r3, yak_r4 = st.columns([1, 1, 1, 2])
+            with yak_r1: st.write("🔥 **Yakacak**")
+            with yak_r2: st.selectbox("Periyot", ["Aylık","Yıllık"], key="s_yakacak_per", label_visibility="collapsed")
+            with yak_r3: st.selectbox("Mod", ["Maktu","Metreküp"], key="s_yakacak_mod", label_visibility="collapsed")
+            with yak_r4: st.text_input("Açıklama", key="s_yakacak_not", placeholder="Not...", label_visibility="collapsed")
 
             if st.session_state["s_yakacak_mod"] == "Maktu":
-                st.number_input("Tutar (Net TL)", min_value=0.0, key="s_yakacak_val")
+                wm0, wm1 = st.columns([2,1])
+                with wm0: st.number_input("Tutar (Net TL)", min_value=0.0, key="s_yakacak_val")
+                with wm1: st.number_input("+%", min_value=0.0, max_value=500.0, step=0.5,
+                                           key="s_yakacak_zam", help="Yakacağa özel artış")
             else:
                 st.selectbox("KDV Durumu", ["KDV Dahil Değil", "KDV Dahil"], key="s_yakacak_kdv")
-                wm1, wm2 = st.columns(2)
+                wm1, wm2, wm3 = st.columns([2, 2, 1])
                 with wm1: st.number_input("Metreküp", min_value=0.0, step=1.0, key="s_yakacak_m3")
                 with wm2: st.number_input("Birim Fiyat (TL)", min_value=0.0, step=0.001, format="%.3f", key="s_yakacak_birim")
+                with wm3: st.number_input("+%", min_value=0.0, max_value=500.0, step=0.5,
+                                           key="s_yakacak_zam", help="Yakacağa özel artış")
                 net_tutar = st.session_state["s_yakacak_m3"] * st.session_state["s_yakacak_birim"]
                 kdv_tutar = net_tutar * 1.20 if st.session_state["s_yakacak_kdv"] == "KDV Dahil Değil" else net_tutar
                 st.info(f"Net: {net_tutar:,.2f} TL  →  KDV'li: {kdv_tutar:,.2f} TL")
-                # yakacak_val'i hesaplanan tutarla eşitle (gösterim amaçlı)
                 st.session_state["s_yakacak_val"] = kdv_tutar
-            yakacak = yakacak_hesapla() * zam_carpan
+            yak_baz = yakacak_hesapla()
+            yakacak = yak_baz * carpan("s_yakacak_zam")
+            goster_artis(yak_baz, yakacak)
 
     cs3, cs4, cs5 = st.columns(3)
     with cs3:
         with st.container(border=True):
-            sosyal_baslik("👕 **Giyim**", "s_giyim_per", "s_giyim_not")
+            sosyal_baslik("👕 **Giyim**", "s_giyim_per", "s_giyim_not", "s_giyim_zam")
             st.radio("", ["Net","Brüt"], horizontal=True, key="s_giyim_tip")
             st.number_input("Tutar", min_value=0.0, key="s_giyim_val")
             giyim_ham = yardim_brutlestir(st.session_state["s_giyim_val"], st.session_state["s_giyim_tip"], secilen_oran)
-            giyim     = ayliklandir(giyim_ham, st.session_state["s_giyim_per"]) * zam_carpan
+            giyim_baz = ayliklandir(giyim_ham, st.session_state["s_giyim_per"])
+            giyim     = giyim_baz * carpan("s_giyim_zam")
+            goster_artis(giyim_baz, giyim)
     with cs4:
         with st.container(border=True):
-            sosyal_baslik("👟 **Ayakkabı**", "s_ayakkabi_per", "s_ayakkabi_not")
+            sosyal_baslik("👟 **Ayakkabı**", "s_ayakkabi_per", "s_ayakkabi_not", "s_ayakkabi_zam")
             st.radio("", ["Net","Brüt"], horizontal=True, key="s_ayakkabi_tip")
             st.number_input("Tutar", min_value=0.0, key="s_ayakkabi_val")
             ayakkabi_ham = yardim_brutlestir(st.session_state["s_ayakkabi_val"], st.session_state["s_ayakkabi_tip"], secilen_oran)
-            ayakkabi     = ayliklandir(ayakkabi_ham, st.session_state["s_ayakkabi_per"]) * zam_carpan
+            ayakkabi_baz = ayliklandir(ayakkabi_ham, st.session_state["s_ayakkabi_per"])
+            ayakkabi     = ayakkabi_baz * carpan("s_ayakkabi_zam")
+            goster_artis(ayakkabi_baz, ayakkabi)
     with cs5:
         with st.container(border=True):
-            sosyal_baslik("🎁 **Yılbaşı**", "s_yilbasi_per", "s_yilbasi_not")
+            sosyal_baslik("🎁 **Yılbaşı**", "s_yilbasi_per", "s_yilbasi_not", "s_yilbasi_zam")
             st.radio("", ["Net","Brüt"], horizontal=True, key="s_yilbasi_tip")
             st.number_input("Tutar", min_value=0.0, key="s_yilbasi_val")
             yilbasi_ham = yardim_brutlestir(st.session_state["s_yilbasi_val"], st.session_state["s_yilbasi_tip"], secilen_oran)
-            yilbasi     = ayliklandir(yilbasi_ham, st.session_state["s_yilbasi_per"]) * zam_carpan
+            yilbasi_baz = ayliklandir(yilbasi_ham, st.session_state["s_yilbasi_per"])
+            yilbasi     = yilbasi_baz * carpan("s_yilbasi_zam")
+            goster_artis(yilbasi_baz, yilbasi)
 
     cs6, cs7, cs8 = st.columns(3)
     with cs6:
         with st.container(border=True):
-            sosyal_baslik("📅 **İzin**", "s_iz_per", "s_iz_not")
+            sosyal_baslik("📅 **İzin**", "s_iz_per", "s_iz_not", "s_iz_zam")
             st.selectbox("Mod", ["Maktu","Katsayı (Gün)"], key="s_iz_m")
             st.radio("", ["Net","Brüt"], horizontal=True, key="s_iz_t")
             st.number_input("Değer", min_value=0.0, key="s_iz_v")
-            iz_ham = yardim_brutlestir(calc_hybrid(st.session_state["s_iz_v"], st.session_state["s_iz_m"], g_brut),
-                                       st.session_state["s_iz_t"], secilen_oran)
-            ay_izin = ayliklandir(iz_ham, st.session_state["s_iz_per"]) * zam_carpan
+            iz_ham  = yardim_brutlestir(calc_hybrid(st.session_state["s_iz_v"], st.session_state["s_iz_m"], g_brut),
+                                        st.session_state["s_iz_t"], secilen_oran)
+            iz_baz  = ayliklandir(iz_ham, st.session_state["s_iz_per"])
+            ay_izin = iz_baz * carpan("s_iz_zam")
+            goster_artis(iz_baz, ay_izin)
     with cs7:
         with st.container(border=True):
-            sosyal_baslik("🎉 **Bayram**", "s_ba_per", "s_ba_not")
+            sosyal_baslik("🎉 **Bayram**", "s_ba_per", "s_ba_not", "s_ba_zam")
             st.selectbox("Mod", ["Maktu","Katsayı (Gün)"], key="s_ba_m")
             st.radio("", ["Net","Brüt"], horizontal=True, key="s_ba_t")
             st.number_input("Değer", min_value=0.0, key="s_ba_v")
-            ba_ham  = yardim_brutlestir(calc_hybrid(st.session_state["s_ba_v"], st.session_state["s_ba_m"], g_brut),
-                                        st.session_state["s_ba_t"], secilen_oran)
-            ay_bayram = ayliklandir(ba_ham, st.session_state["s_ba_per"]) * zam_carpan
+            ba_ham    = yardim_brutlestir(calc_hybrid(st.session_state["s_ba_v"], st.session_state["s_ba_m"], g_brut),
+                                          st.session_state["s_ba_t"], secilen_oran)
+            ba_baz    = ayliklandir(ba_ham, st.session_state["s_ba_per"])
+            ay_bayram = ba_baz * carpan("s_ba_zam")
+            goster_artis(ba_baz, ay_bayram)
     with cs8:
         with st.container(border=True):
-            sosyal_baslik("🏆 **Prim**", "s_pr_per", "s_pr_not")
+            sosyal_baslik("🏆 **Prim**", "s_pr_per", "s_pr_not", "s_pr_zam")
             st.selectbox("Mod", ["Maktu","Katsayı (Gün)","Yüzde (%)"], key="s_pr_m")
             st.radio("", ["Net","Brüt"], horizontal=True, key="s_pr_t")
             st.number_input("Değer", min_value=0.0, key="s_pr_v")
             pr_ham  = yardim_brutlestir(calc_hybrid(st.session_state["s_pr_v"], st.session_state["s_pr_m"], g_brut),
                                         st.session_state["s_pr_t"], secilen_oran)
-            ay_prim = ayliklandir(pr_ham, st.session_state["s_pr_per"]) * zam_carpan
+            pr_baz  = ayliklandir(pr_ham, st.session_state["s_pr_per"])
+            ay_prim = pr_baz * carpan("s_pr_zam")
+            goster_artis(pr_baz, ay_prim)
 
     with st.container(border=True):
-        ik1, ik2 = st.columns([1,2])
+        ik1, ik2, ik3 = st.columns([1, 1, 2])
         with ik1: st.number_input("💰 Yıllık İkramiye Günü", min_value=0, key="s_ikramiye")
-        with ik2: st.text_input("Açıklama", key="s_ikramiye_not", placeholder="Not...")
-        ay_ikramiye = (g_brut * st.session_state["s_ikramiye"]) / 12 * zam_carpan
+        with ik2: st.number_input("+% İkramiye", min_value=0.0, max_value=500.0, step=0.5,
+                                   key="s_ikramiye_zam", help="İkramiyeye özel artış oranı")
+        with ik3: st.text_input("Açıklama", key="s_ikramiye_not", placeholder="Not...")
+        ik_baz = (g_brut * st.session_state["s_ikramiye"]) / 12
+        ay_ikramiye = ik_baz * carpan("s_ikramiye_zam")
+        goster_artis(ik_baz, ay_ikramiye, "Aylık ikramiye")
 
     # ── AİLE & ÇOCUK ──────────────────────────────────────────
     with st.container(border=True):
