@@ -985,10 +985,29 @@ with tab2:
     v_tutar = calc_hybrid(st.session_state["s_v_val"], st.session_state["s_v_mod"], g_brut)
     if st.session_state["s_v_hesap"] == "Fiili (195/225)": v_tutar = v_tutar * 195/225
 
-    g_tutar = calc_hybrid(st.session_state["s_g_val"], st.session_state["s_g_mod"], g_brut)
-    if st.session_state["s_g_hesap"] == "Fiili (80/225)":
-        g_tutar = g_tutar * 225   # saatlik → aylık
-        g_tutar = g_tutar * 80/225  # fiili oran
+    def gece_zammi_hesapla():
+        mod = st.session_state["s_g_mod"]       # "Maktu" veya "%"
+        hesap = st.session_state["s_g_hesap"]   # "Fiili (80/225)"
+        val = st.session_state["s_g_val"]
+        brut_ucret = g_brut  # senin mevcut brüt ücret değişkenin
+
+        if hesap == "Fiili (80/225)":
+
+            if mod == "Maktu":
+                # Saatlik girildi → direkt 80 ile çarp
+                g_tutar = val * 80
+
+            else:
+                # Yüzde girildi
+                saatlik = brut_ucret / 225
+                saatlik_zam = saatlik * (val / 100)
+                g_tutar = saatlik_zam * 80
+
+        else:
+            # diğer sistem varsa (eski mantık)
+            g_tutar = calc_hybrid(val, mod, brut_ucret)
+
+        return g_tutar
 
     eo_val = st.session_state["s_eo_val"]; eo_mod = st.session_state["s_eo_mod"]
     ay_ek_ozel = g_brut * (eo_val if eo_mod=="Katsayı" else eo_val/100) \
