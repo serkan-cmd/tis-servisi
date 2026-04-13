@@ -986,7 +986,9 @@ with tab2:
     if st.session_state["s_v_hesap"] == "Fiili (195/225)": v_tutar = v_tutar * 195/225
 
     g_tutar = calc_hybrid(st.session_state["s_g_val"], st.session_state["s_g_mod"], g_brut)
-    if st.session_state["s_g_hesap"] == "Fiili (80/225)": g_tutar = g_tutar * 80/225
+    if st.session_state["s_g_hesap"] == "Fiili (80/225)":
+        g_tutar = g_tutar * 225   # saatlik → aylık
+        g_tutar = g_tutar * 80/225  # fiili oran
 
     eo_val = st.session_state["s_eo_val"]; eo_mod = st.session_state["s_eo_mod"]
     ay_ek_ozel = g_brut * (eo_val if eo_mod=="Katsayı" else eo_val/100) \
