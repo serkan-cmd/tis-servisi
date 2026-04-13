@@ -54,7 +54,7 @@ SHEET_HEADERS = [
     "Ek Ödeme 1 Mod", "Ek Ödeme 1 Değer", "Ek Ödeme 1 Periyot", "Ek Ödeme 1 Tip", "Ek Ödeme 1 Zam",
     "Ek Ödeme 2 Mod", "Ek Ödeme 2 Değer", "Ek Ödeme 2 Periyot", "Ek Ödeme 2 Tip", "Ek Ödeme 2 Zam",
     "Gıda Tip", "Gıda Tutar", "Gıda Periyot", "Gıda Not",
-    "Yakacak Mod", "Yakacak Tip", "Yakacak KDV", "Yakacak Tutar", "Yakacak M3", "Yakacak Birim", "Yakacak Periyot", "Yakacak Not",
+    "Yakacak Mod", "Yakacak KDV", "Yakacak Tutar", "Yakacak M3", "Yakacak Birim", "Yakacak Periyot", "Yakacak Not",
     "Giyim Tip", "Giyim Tutar", "Giyim Periyot", "Giyim Not",
     "Ayakkabı Tip", "Ayakkabı Tutar", "Ayakkabı Periyot", "Ayakkabı Not",
     "Yılbaşı Tip", "Yılbaşı Tutar", "Yılbaşı Periyot", "Yılbaşı Not",
@@ -241,7 +241,6 @@ def yukle_kayit(r):
     st.session_state["s_gida_per"] = rs("Gıda Periyot", ["Aylık", "Yıllık"], "Aylık")
     st.session_state["s_gida_not"] = rv("Gıda Not")
     # Yakacak
-    st.session_state["s_yakacak_tip"] = rs("Yakacak Tip", ["Net", "Brüt"], "Net")
     st.session_state["s_yakacak_mod"]   = rs("Yakacak Mod", ["Maktu", "Metreküp"], "Maktu")
     st.session_state["s_yakacak_kdv"]   = rs("Yakacak KDV", ["KDV Dahil Değil", "KDV Dahil"], "KDV Dahil Değil")
     st.session_state["s_yakacak_val"]   = rf("Yakacak Tutar")
@@ -388,29 +387,17 @@ def yakacak_hesapla():
     """Yakacak ödentisini brüt TL olarak döndürür (aylık)."""
     mod = st.session_state["s_yakacak_mod"]
     per = st.session_state["s_yakacak_per"]
-    tip = st.session_state["s_yakacak_tip"]
-
+    tip = st.session_state.get("s_yakacak_tip", "Net")
     if mod == "Maktu":
-        val = yardim_brutlestir(
-            st.session_state["s_yakacak_val"],
-            tip,
-            secilen_oran
-        )
+        val = yardim_brutlestir(st.session_state["s_yakacak_val"], tip, secilen_oran)
     else:
         m3    = st.session_state["s_yakacak_m3"]
         birim = st.session_state["s_yakacak_birim"]
         kdv   = st.session_state["s_yakacak_kdv"]
-
         tutar = m3 * birim
         if kdv == "KDV Dahil Değil":
             tutar *= 1.20
-
-        val = yardim_brutlestir(
-            tutar,
-            tip,
-            secilen_oran
-        )
-
+        val = yardim_brutlestir(tutar, tip, secilen_oran)
     return ayliklandir(val, per)
 
 # ============================================================
@@ -782,15 +769,19 @@ with tab2:
         with yh2: st.selectbox("", ["Yıllık","Aylık"], key="s_yakacak_per", label_visibility="collapsed")
         with yh3: st.selectbox("", ["Maktu","Metreküp"], key="s_yakacak_mod", label_visibility="collapsed")
         if st.session_state["s_yakacak_mod"] == "Maktu":
+            # Net/Brüt + tutar | +% | Not
+            st.radio("", ["Net","Brüt"], horizontal=True, key="s_yakacak_tip")
             yc1, yc2, yc3 = st.columns([2, 1, 2])
-            with yc1:
-                st.radio("", ["Net","Brüt"], horizontal=True, key="s_yakacak_tip")
-                st.number_input("Tutar", min_value=0.0, key="s_yakacak_val")
+            with yc1: st.number_input("Tutar", min_value=0.0, key="s_yakacak_val")
             with yc2: st.number_input("+%", min_value=0.0, max_value=500.0, step=0.5,
                                        key="s_yakacak_zam", help="Yakacağa özel artış")
             with yc3: st.text_input("Not", key="s_yakacak_not", placeholder="Açıklama...")
         else:
-            st.selectbox("KDV Durumu", ["KDV Dahil Değil","KDV Dahil"], key="s_yakacak_kdv")
+            # Metreküp modunda: KDV sonrası tutar net kabul edilir, Net/Brüt seçeneği sunulur
+            yk_r1, yk_r2 = st.columns([1, 2])
+            with yk_r1: st.selectbox("KDV Durumu", ["KDV Dahil Değil","KDV Dahil"], key="s_yakacak_kdv")
+            with yk_r2: st.radio("", ["Net","Brüt"], horizontal=True, key="s_yakacak_tip",
+                                  help="KDV sonrası tutarın Net mi Brüt mü olduğunu seçin")
             ym1, ym2, ym3, ym4 = st.columns([2, 2, 1, 2])
             with ym1: st.number_input("Metreküp", min_value=0.0, step=1.0, key="s_yakacak_m3")
             with ym2: st.number_input("Birim Fiyat (TL)", min_value=0.0, step=0.001, format="%.3f", key="s_yakacak_birim")
@@ -1165,9 +1156,24 @@ with tab3:
     if df3.empty:
         st.info("Henüz kayıtlı veri yok.")
     else:
+        def to_float_col(series):
+            """Sütundaki değerleri float'a çevirir. Boş, None, 0.0000 hepsini handle eder."""
+            def parse(v):
+                try:
+                    s = str(v).strip().replace(" ","").replace(",",".")
+                    if s in ("", "None", "nan", "NaN", "-"): return float("nan")
+                    return float(s)
+                except:
+                    return float("nan")
+            return series.apply(parse)
+
         for col in ["Ana Maaş (Brüt)", "Sosyal Paket", "Toplam Maliyet"]:
             if col in df3.columns:
-                df3[col] = pd.to_numeric(df3[col].astype(str).str.replace(",","."), errors='coerce')
+                df3[col] = to_float_col(df3[col])
+        
+        # nan satırları filtrele (hiç kaydedilmemiş sütunlar vs)
+        if "Toplam Maliyet" in df3.columns:
+            df3 = df3[df3["Toplam Maliyet"].notna() & (df3["Toplam Maliyet"] > 0)]
 
         st.subheader("🔢 Genel Özet")
         og1, og2, og3, og4 = st.columns(4)
@@ -1230,8 +1236,14 @@ with tab3:
                 sec_row           = df3[df3["İşyeri"]==secilen].iloc[0]
                 genel_ort_maas    = df3["Ana Maaş (Brüt)"].mean()
                 genel_ort_maliyet = df3["Toplam Maliyet"].mean()
-                isyeri_maas    = float(str(sec_row.get("Ana Maaş (Brüt)",0)).replace(",",".") or 0)
-                isyeri_maliyet = float(str(sec_row.get("Toplam Maliyet",0)).replace(",",".") or 0)
+                def safe_float(val):
+                    try:
+                        s = str(val).strip().replace(" ","").replace(",",".")
+                        f = float(s)
+                        return f if f == f else 0.0  # nan check
+                    except: return 0.0
+                isyeri_maas    = safe_float(sec_row.get("Ana Maaş (Brüt)", 0))
+                isyeri_maliyet = safe_float(sec_row.get("Toplam Maliyet", 0))
                 kk1, kk2 = st.columns(2)
                 with kk1: st.metric("Çıplak Ücret", f"{isyeri_maas:,.0f} TL",
                                      delta=f"{isyeri_maas-genel_ort_maas:+,.0f} TL (genel ort.)")
