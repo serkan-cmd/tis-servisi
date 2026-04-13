@@ -627,125 +627,163 @@ with tab2:
         else:
             st.caption(f"{etiket}: {son:,.2f} TL")
 
-    cs1, cs2 = st.columns(2)
-    with cs1:
-        with st.container(border=True):
-            sosyal_baslik("🍞 **Gıda**", "s_gida_per", "s_gida_not", "s_gida_zam")
-            st.radio("", ["Net", "Brüt"], horizontal=True, key="s_gida_tip")
-            st.number_input("Tutar", min_value=0.0, key="s_gida_val")
-            gida_ham = yardim_brutlestir(st.session_state["s_gida_val"], st.session_state["s_gida_tip"], secilen_oran)
-            gida_baz = ayliklandir(gida_ham, st.session_state["s_gida_per"])
-            gida     = gida_baz * carpan("s_gida_zam")
-            goster_artis(gida_baz, gida)
+    # ─────────────────────────────────────────────────────────
+    # YERLEŞİM: her kart tam genişlik, kontroller kart içinde
+    # 2 sütun yan yana. Başlık satırı: etiket | periyot
+    # Alt satır: tutar | +% bireysel | not
+    # ─────────────────────────────────────────────────────────
 
-    with cs2:
-        with st.container(border=True):
-            yak_r1, yak_r2, yak_r3, yak_r4 = st.columns([1, 1, 1, 2])
-            with yak_r1: st.write("🔥 **Yakacak**")
-            with yak_r2: st.selectbox("Periyot", ["Aylık","Yıllık"], key="s_yakacak_per", label_visibility="collapsed")
-            with yak_r3: st.selectbox("Mod", ["Maktu","Metreküp"], key="s_yakacak_mod", label_visibility="collapsed")
-            with yak_r4: st.text_input("Açıklama", key="s_yakacak_not", placeholder="Not...", label_visibility="collapsed")
+    # 1. İKRAMİYE (tam genişlik)
+    with st.container(border=True):
+        hb1, hb2 = st.columns([3, 1])
+        with hb1: st.markdown("💰 **İkramiye**")
+        with hb2: st.caption("(yıllık gün)")
+        ib1, ib2, ib3 = st.columns([2, 1, 2])
+        with ib1: st.number_input("Yıllık İkramiye Günü", min_value=0, key="s_ikramiye")
+        with ib2: st.number_input("+%", min_value=0.0, max_value=500.0, step=0.5,
+                                   key="s_ikramiye_zam", label_visibility="visible",
+                                   help="İkramiyeye özel artış")
+        with ib3: st.text_input("Not", key="s_ikramiye_not", placeholder="Açıklama...")
+        ik_baz = (g_brut * st.session_state["s_ikramiye"]) / 12
+        ay_ikramiye = ik_baz * carpan("s_ikramiye_zam")
+        goster_artis(ik_baz, ay_ikramiye, "Aylık ikramiye")
 
-            if st.session_state["s_yakacak_mod"] == "Maktu":
-                wm0, wm1 = st.columns([2,1])
-                with wm0: st.number_input("Tutar (Net TL)", min_value=0.0, key="s_yakacak_val")
-                with wm1: st.number_input("+%", min_value=0.0, max_value=500.0, step=0.5,
-                                           key="s_yakacak_zam", help="Yakacağa özel artış")
-            else:
-                st.selectbox("KDV Durumu", ["KDV Dahil Değil", "KDV Dahil"], key="s_yakacak_kdv")
-                wm1, wm2, wm3 = st.columns([2, 2, 1])
-                with wm1: st.number_input("Metreküp", min_value=0.0, step=1.0, key="s_yakacak_m3")
-                with wm2: st.number_input("Birim Fiyat (TL)", min_value=0.0, step=0.001, format="%.3f", key="s_yakacak_birim")
-                with wm3: st.number_input("+%", min_value=0.0, max_value=500.0, step=0.5,
-                                           key="s_yakacak_zam", help="Yakacağa özel artış")
-                net_tutar = st.session_state["s_yakacak_m3"] * st.session_state["s_yakacak_birim"]
-                kdv_tutar = net_tutar * 1.20 if st.session_state["s_yakacak_kdv"] == "KDV Dahil Değil" else net_tutar
-                st.info(f"Net: {net_tutar:,.2f} TL  →  KDV'li: {kdv_tutar:,.2f} TL")
-                st.session_state["s_yakacak_val"] = kdv_tutar
-            yak_baz = yakacak_hesapla()
-            yakacak = yak_baz * carpan("s_yakacak_zam")
-            goster_artis(yak_baz, yakacak)
-
-    cs3, cs4, cs5 = st.columns(3)
-    with cs3:
+    # 2-3. İZİN + BAYRAM (yan yana)
+    r23a, r23b = st.columns(2)
+    with r23a:
         with st.container(border=True):
-            sosyal_baslik("👕 **Giyim**", "s_giyim_per", "s_giyim_not", "s_giyim_zam")
-            st.radio("", ["Net","Brüt"], horizontal=True, key="s_giyim_tip")
-            st.number_input("Tutar", min_value=0.0, key="s_giyim_val")
-            giyim_ham = yardim_brutlestir(st.session_state["s_giyim_val"], st.session_state["s_giyim_tip"], secilen_oran)
-            giyim_baz = ayliklandir(giyim_ham, st.session_state["s_giyim_per"])
-            giyim     = giyim_baz * carpan("s_giyim_zam")
-            goster_artis(giyim_baz, giyim)
-    with cs4:
-        with st.container(border=True):
-            sosyal_baslik("👟 **Ayakkabı**", "s_ayakkabi_per", "s_ayakkabi_not", "s_ayakkabi_zam")
-            st.radio("", ["Net","Brüt"], horizontal=True, key="s_ayakkabi_tip")
-            st.number_input("Tutar", min_value=0.0, key="s_ayakkabi_val")
-            ayakkabi_ham = yardim_brutlestir(st.session_state["s_ayakkabi_val"], st.session_state["s_ayakkabi_tip"], secilen_oran)
-            ayakkabi_baz = ayliklandir(ayakkabi_ham, st.session_state["s_ayakkabi_per"])
-            ayakkabi     = ayakkabi_baz * carpan("s_ayakkabi_zam")
-            goster_artis(ayakkabi_baz, ayakkabi)
-    with cs5:
-        with st.container(border=True):
-            sosyal_baslik("🎁 **Yılbaşı**", "s_yilbasi_per", "s_yilbasi_not", "s_yilbasi_zam")
-            st.radio("", ["Net","Brüt"], horizontal=True, key="s_yilbasi_tip")
-            st.number_input("Tutar", min_value=0.0, key="s_yilbasi_val")
-            yilbasi_ham = yardim_brutlestir(st.session_state["s_yilbasi_val"], st.session_state["s_yilbasi_tip"], secilen_oran)
-            yilbasi_baz = ayliklandir(yilbasi_ham, st.session_state["s_yilbasi_per"])
-            yilbasi     = yilbasi_baz * carpan("s_yilbasi_zam")
-            goster_artis(yilbasi_baz, yilbasi)
-
-    cs6, cs7, cs8 = st.columns(3)
-    with cs6:
-        with st.container(border=True):
-            sosyal_baslik("📅 **İzin**", "s_iz_per", "s_iz_not", "s_iz_zam")
+            h1, h2 = st.columns([3, 1])
+            with h1: st.markdown("📅 **İzin Parası**")
+            with h2: st.selectbox("", ["Yıllık","Aylık"], key="s_iz_per", label_visibility="collapsed")
             st.selectbox("Mod", ["Maktu","Katsayı (Gün)"], key="s_iz_m")
-            st.radio("", ["Net","Brüt"], horizontal=True, key="s_iz_t")
+            c1,c2,c3 = st.columns([2,1,2])
+            with c1: st.radio("", ["Net","Brüt"], horizontal=True, key="s_iz_t")
+            with c2: st.number_input("+%", min_value=0.0, max_value=500.0, step=0.5,
+                                     key="s_iz_zam", help="İzin parasına özel artış")
+            with c3: st.text_input("Not", key="s_iz_not", placeholder="Açıklama...")
             st.number_input("Değer", min_value=0.0, key="s_iz_v")
             iz_ham  = yardim_brutlestir(calc_hybrid(st.session_state["s_iz_v"], st.session_state["s_iz_m"], g_brut),
                                         st.session_state["s_iz_t"], secilen_oran)
             iz_baz  = ayliklandir(iz_ham, st.session_state["s_iz_per"])
             ay_izin = iz_baz * carpan("s_iz_zam")
             goster_artis(iz_baz, ay_izin)
-    with cs7:
+    with r23b:
         with st.container(border=True):
-            sosyal_baslik("🎉 **Bayram**", "s_ba_per", "s_ba_not", "s_ba_zam")
+            h1, h2 = st.columns([3, 1])
+            with h1: st.markdown("🎉 **Bayram Parası**")
+            with h2: st.selectbox("", ["Yıllık","Aylık"], key="s_ba_per", label_visibility="collapsed")
             st.selectbox("Mod", ["Maktu","Katsayı (Gün)"], key="s_ba_m")
-            st.radio("", ["Net","Brüt"], horizontal=True, key="s_ba_t")
+            c1,c2,c3 = st.columns([2,1,2])
+            with c1: st.radio("", ["Net","Brüt"], horizontal=True, key="s_ba_t")
+            with c2: st.number_input("+%", min_value=0.0, max_value=500.0, step=0.5,
+                                     key="s_ba_zam", help="Bayram parasına özel artış")
+            with c3: st.text_input("Not", key="s_ba_not", placeholder="Açıklama...")
             st.number_input("Değer", min_value=0.0, key="s_ba_v")
             ba_ham    = yardim_brutlestir(calc_hybrid(st.session_state["s_ba_v"], st.session_state["s_ba_m"], g_brut),
                                           st.session_state["s_ba_t"], secilen_oran)
             ba_baz    = ayliklandir(ba_ham, st.session_state["s_ba_per"])
             ay_bayram = ba_baz * carpan("s_ba_zam")
             goster_artis(ba_baz, ay_bayram)
-    with cs8:
+
+    # 4. YAKACAK (tam genişlik — içeriği değişken)
+    with st.container(border=True):
+        yh1, yh2, yh3 = st.columns([3, 1, 1])
+        with yh1: st.markdown("🔥 **Yakacak Parası**")
+        with yh2: st.selectbox("", ["Yıllık","Aylık"], key="s_yakacak_per", label_visibility="collapsed")
+        with yh3: st.selectbox("", ["Maktu","Metreküp"], key="s_yakacak_mod", label_visibility="collapsed")
+        if st.session_state["s_yakacak_mod"] == "Maktu":
+            yc1, yc2, yc3 = st.columns([2, 1, 2])
+            with yc1: st.number_input("Tutar (Net TL)", min_value=0.0, key="s_yakacak_val")
+            with yc2: st.number_input("+%", min_value=0.0, max_value=500.0, step=0.5,
+                                       key="s_yakacak_zam", help="Yakacağa özel artış")
+            with yc3: st.text_input("Not", key="s_yakacak_not", placeholder="Açıklama...")
+        else:
+            st.selectbox("KDV Durumu", ["KDV Dahil Değil","KDV Dahil"], key="s_yakacak_kdv")
+            ym1, ym2, ym3, ym4 = st.columns([2, 2, 1, 2])
+            with ym1: st.number_input("Metreküp", min_value=0.0, step=1.0, key="s_yakacak_m3")
+            with ym2: st.number_input("Birim Fiyat (TL)", min_value=0.0, step=0.001, format="%.3f", key="s_yakacak_birim")
+            with ym3: st.number_input("+%", min_value=0.0, max_value=500.0, step=0.5,
+                                       key="s_yakacak_zam", help="Yakacağa özel artış")
+            with ym4: st.text_input("Not", key="s_yakacak_not", placeholder="Açıklama...")
+            net_tutar = st.session_state["s_yakacak_m3"] * st.session_state["s_yakacak_birim"]
+            kdv_tutar = net_tutar * 1.20 if st.session_state["s_yakacak_kdv"] == "KDV Dahil Değil" else net_tutar
+            st.info(f"Net: {net_tutar:,.2f} TL  →  KDV'li: {kdv_tutar:,.2f} TL")
+            st.session_state["s_yakacak_val"] = kdv_tutar
+        yak_baz = yakacak_hesapla()
+        yakacak = yak_baz * carpan("s_yakacak_zam")
+        goster_artis(yak_baz, yakacak)
+
+    # 5-6. GİYİM + AYAKKABI (yan yana)
+    r56a, r56b = st.columns(2)
+    with r56a:
         with st.container(border=True):
-            sosyal_baslik("🏆 **Prim**", "s_pr_per", "s_pr_not", "s_pr_zam")
-            st.selectbox("Mod", ["Maktu","Katsayı (Gün)","Yüzde (%)"], key="s_pr_m")
-            st.radio("", ["Net","Brüt"], horizontal=True, key="s_pr_t")
-            st.number_input("Değer", min_value=0.0, key="s_pr_v")
-            pr_ham  = yardim_brutlestir(calc_hybrid(st.session_state["s_pr_v"], st.session_state["s_pr_m"], g_brut),
-                                        st.session_state["s_pr_t"], secilen_oran)
-            pr_baz  = ayliklandir(pr_ham, st.session_state["s_pr_per"])
-            ay_prim = pr_baz * carpan("s_pr_zam")
-            goster_artis(pr_baz, ay_prim)
+            h1, h2 = st.columns([3, 1])
+            with h1: st.markdown("👕 **Giyim Parası**")
+            with h2: st.selectbox("", ["Yıllık","Aylık"], key="s_giyim_per", label_visibility="collapsed")
+            st.radio("", ["Net","Brüt"], horizontal=True, key="s_giyim_tip")
+            c1,c2,c3 = st.columns([2,1,2])
+            with c1: st.number_input("Tutar", min_value=0.0, key="s_giyim_val")
+            with c2: st.number_input("+%", min_value=0.0, max_value=500.0, step=0.5,
+                                     key="s_giyim_zam", help="Giyime özel artış")
+            with c3: st.text_input("Not", key="s_giyim_not", placeholder="Açıklama...")
+            giyim_ham = yardim_brutlestir(st.session_state["s_giyim_val"], st.session_state["s_giyim_tip"], secilen_oran)
+            giyim_baz = ayliklandir(giyim_ham, st.session_state["s_giyim_per"])
+            giyim     = giyim_baz * carpan("s_giyim_zam")
+            goster_artis(giyim_baz, giyim)
+    with r56b:
+        with st.container(border=True):
+            h1, h2 = st.columns([3, 1])
+            with h1: st.markdown("👟 **Ayakkabı Parası**")
+            with h2: st.selectbox("", ["Yıllık","Aylık"], key="s_ayakkabi_per", label_visibility="collapsed")
+            st.radio("", ["Net","Brüt"], horizontal=True, key="s_ayakkabi_tip")
+            c1,c2,c3 = st.columns([2,1,2])
+            with c1: st.number_input("Tutar", min_value=0.0, key="s_ayakkabi_val")
+            with c2: st.number_input("+%", min_value=0.0, max_value=500.0, step=0.5,
+                                     key="s_ayakkabi_zam", help="Ayakkabıya özel artış")
+            with c3: st.text_input("Not", key="s_ayakkabi_not", placeholder="Açıklama...")
+            ayakkabi_ham = yardim_brutlestir(st.session_state["s_ayakkabi_val"], st.session_state["s_ayakkabi_tip"], secilen_oran)
+            ayakkabi_baz = ayliklandir(ayakkabi_ham, st.session_state["s_ayakkabi_per"])
+            ayakkabi     = ayakkabi_baz * carpan("s_ayakkabi_zam")
+            goster_artis(ayakkabi_baz, ayakkabi)
 
-    with st.container(border=True):
-        ik1, ik2, ik3 = st.columns([1, 1, 2])
-        with ik1: st.number_input("💰 Yıllık İkramiye Günü", min_value=0, key="s_ikramiye")
-        with ik2: st.number_input("+% İkramiye", min_value=0.0, max_value=500.0, step=0.5,
-                                   key="s_ikramiye_zam", help="İkramiyeye özel artış oranı")
-        with ik3: st.text_input("Açıklama", key="s_ikramiye_not", placeholder="Not...")
-        ik_baz = (g_brut * st.session_state["s_ikramiye"]) / 12
-        ay_ikramiye = ik_baz * carpan("s_ikramiye_zam")
-        goster_artis(ik_baz, ay_ikramiye, "Aylık ikramiye")
+    # 7-8. GIDA + YILBAŞI (yan yana)
+    r78a, r78b = st.columns(2)
+    with r78a:
+        with st.container(border=True):
+            h1, h2 = st.columns([3, 1])
+            with h1: st.markdown("🍞 **Gıda Parası**")
+            with h2: st.selectbox("", ["Aylık","Yıllık"], key="s_gida_per", label_visibility="collapsed")
+            st.radio("", ["Net","Brüt"], horizontal=True, key="s_gida_tip")
+            c1,c2,c3 = st.columns([2,1,2])
+            with c1: st.number_input("Tutar", min_value=0.0, key="s_gida_val")
+            with c2: st.number_input("+%", min_value=0.0, max_value=500.0, step=0.5,
+                                     key="s_gida_zam", help="Gıdaya özel artış")
+            with c3: st.text_input("Not", key="s_gida_not", placeholder="Açıklama...")
+            gida_ham = yardim_brutlestir(st.session_state["s_gida_val"], st.session_state["s_gida_tip"], secilen_oran)
+            gida_baz = ayliklandir(gida_ham, st.session_state["s_gida_per"])
+            gida     = gida_baz * carpan("s_gida_zam")
+            goster_artis(gida_baz, gida)
+    with r78b:
+        with st.container(border=True):
+            h1, h2 = st.columns([3, 1])
+            with h1: st.markdown("🎁 **Yılbaşı Parası**")
+            with h2: st.selectbox("", ["Yıllık","Aylık"], key="s_yilbasi_per", label_visibility="collapsed")
+            st.radio("", ["Net","Brüt"], horizontal=True, key="s_yilbasi_tip")
+            c1,c2,c3 = st.columns([2,1,2])
+            with c1: st.number_input("Tutar", min_value=0.0, key="s_yilbasi_val")
+            with c2: st.number_input("+%", min_value=0.0, max_value=500.0, step=0.5,
+                                     key="s_yilbasi_zam", help="Yılbaşına özel artış")
+            with c3: st.text_input("Not", key="s_yilbasi_not", placeholder="Açıklama...")
+            yilbasi_ham = yardim_brutlestir(st.session_state["s_yilbasi_val"], st.session_state["s_yilbasi_tip"], secilen_oran)
+            yilbasi_baz = ayliklandir(yilbasi_ham, st.session_state["s_yilbasi_per"])
+            yilbasi     = yilbasi_baz * carpan("s_yilbasi_zam")
+            goster_artis(yilbasi_baz, yilbasi)
 
-    # ── AİLE & ÇOCUK ──────────────────────────────────────────
-    with st.container(border=True):
-        st.write("👨‍👩‍👧‍👦 **Aile & Çocuk Yardımları**")
-        cac1, cac2 = st.columns(2)
-        with cac1:
-            st.markdown("**Aile**")
+    # 9-10. AİLE + ÇOCUK (yan yana)
+    r910a, r910b = st.columns(2)
+    with r910a:
+        with st.container(border=True):
+            st.markdown("👨‍👩‍👧 **Aile Yardımı**")
             al1, al2 = st.columns(2)
             with al1: st.checkbox("657 Aile Yardımı", key="s_yasal_aile")
             with al2:
@@ -760,8 +798,9 @@ with tab2:
                                     step=1.0, key="s_muaf_aile_pct", help="%100 = tam muafiyet tutarı")
             st.number_input("Maktu Aile (TL)", min_value=0.0, key="s_maktu_aile")
             st.text_input("Aile Notu", key="s_aile_not", placeholder="Not...")
-        with cac2:
-            st.markdown("**Çocuk** (2 çocuk baz alınır)")
+    with r910b:
+        with st.container(border=True):
+            st.markdown("👶 **Çocuk Yardımı** (2 çocuk baz)")
             cl1, cl2 = st.columns(2)
             with cl1: st.checkbox("657 Çocuk Yardımı", key="s_yasal_cocuk")
             with cl2:
@@ -776,6 +815,25 @@ with tab2:
                                     step=1.0, key="s_muaf_cocuk_pct", help="%100 = tam muafiyet tutarı")
             st.number_input("Maktu Çocuk (Birim TL)", min_value=0.0, key="s_maktu_cocuk")
             st.text_input("Çocuk Notu", key="s_cocuk_not", placeholder="Not...")
+
+    # 11. PRİM (tam genişlik)
+    with st.container(border=True):
+        ph1, ph2 = st.columns([3, 1])
+        with ph1: st.markdown("🏆 **Prim**")
+        with ph2: st.selectbox("", ["Aylık","Yıllık"], key="s_pr_per", label_visibility="collapsed")
+        pc1, pc2, pc3 = st.columns([2, 2, 1])
+        with pc1: st.selectbox("Mod", ["Maktu","Katsayı (Gün)","Yüzde (%)"], key="s_pr_m")
+        with pc2: st.radio("", ["Net","Brüt"], horizontal=True, key="s_pr_t")
+        with pc3: st.number_input("+%", min_value=0.0, max_value=500.0, step=0.5,
+                                   key="s_pr_zam", help="Prime özel artış")
+        pd1, pd2 = st.columns([2, 3])
+        with pd1: st.number_input("Değer", min_value=0.0, key="s_pr_v")
+        with pd2: st.text_input("Not", key="s_pr_not", placeholder="Açıklama...")
+        pr_ham  = yardim_brutlestir(calc_hybrid(st.session_state["s_pr_v"], st.session_state["s_pr_m"], g_brut),
+                                    st.session_state["s_pr_t"], secilen_oran)
+        pr_baz  = ayliklandir(pr_ham, st.session_state["s_pr_per"])
+        ay_prim = pr_baz * carpan("s_pr_zam")
+        goster_artis(pr_baz, ay_prim)
 
     st.divider()
     st.markdown("### ⚡ Vardiya, Gece ve Özel")
