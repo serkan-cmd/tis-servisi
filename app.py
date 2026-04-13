@@ -1015,6 +1015,7 @@ with tab2:
                  else a_brut * (eo_val if eo_mod=="Katsayı" else eo_val/100)
 
     if st.session_state["s_denge"]:
+        g_tutar = gece_zammi_hesapla()
         baz = a_brut + ay_ikramiye + g_tutar + v_tutar
         ay_denge = baz * (st.session_state["s_denge_oran"]/100)
         st.metric("Denge Ödentisi", f"{ay_denge:,.2f} TL")
