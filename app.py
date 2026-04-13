@@ -190,7 +190,19 @@ def sifirla():
 # ============================================================
 def yukle_kayit(r):
     def rv(col, default=""):
-        val = r.get(col, ""); return val if (val != "" and val is not None) else default
+        val = r.get(col, "")
+        if val is None: return default
+        s = str(val).strip()
+        if s == "": return default
+        return s
+
+    def rvs(col, default=""):
+        """Not/açıklama alanları için: 0 ve 0.0 da boş kabul edilir."""
+        val = r.get(col, "")
+        if val is None: return default
+        s = str(val).strip()
+        if s in ("", "0", "0.0", "0.0000"): return default
+        return s
     def rf(col, default=0.0):
         try:
             val = str(r.get(col, "")).strip().replace(",", ".")
@@ -239,7 +251,7 @@ def yukle_kayit(r):
     st.session_state["s_gida_tip"] = rs("Gıda Tip", ["Net", "Brüt"], "Net")
     st.session_state["s_gida_val"] = rf("Gıda Tutar")
     st.session_state["s_gida_per"] = rs("Gıda Periyot", ["Aylık", "Yıllık"], "Aylık")
-    st.session_state["s_gida_not"] = rv("Gıda Not")
+    st.session_state["s_gida_not"] = rvs("Gıda Not")
     # Yakacak
     st.session_state["s_yakacak_mod"]   = rs("Yakacak Mod", ["Maktu", "Metreküp"], "Maktu")
     st.session_state["s_yakacak_kdv"]   = rs("Yakacak KDV", ["KDV Dahil Değil", "KDV Dahil"], "KDV Dahil Değil")
@@ -247,69 +259,69 @@ def yukle_kayit(r):
     st.session_state["s_yakacak_m3"]    = rf("Yakacak M3")
     st.session_state["s_yakacak_birim"] = rf("Yakacak Birim")
     st.session_state["s_yakacak_per"]   = rs("Yakacak Periyot", ["Aylık", "Yıllık"], "Yıllık")
-    st.session_state["s_yakacak_not"]   = rv("Yakacak Not")
+    st.session_state["s_yakacak_not"]   = rvs("Yakacak Not")
     # Giyim
     st.session_state["s_giyim_tip"] = rs("Giyim Tip", ["Net", "Brüt"], "Net")
     st.session_state["s_giyim_val"] = rf("Giyim Tutar")
     st.session_state["s_giyim_per"] = rs("Giyim Periyot", ["Aylık", "Yıllık"], "Yıllık")
-    st.session_state["s_giyim_not"] = rv("Giyim Not")
+    st.session_state["s_giyim_not"] = rvs("Giyim Not")
     # Ayakkabı
     st.session_state["s_ayakkabi_tip"] = rs("Ayakkabı Tip", ["Net", "Brüt"], "Net")
     st.session_state["s_ayakkabi_val"] = rf("Ayakkabı Tutar")
     st.session_state["s_ayakkabi_per"] = rs("Ayakkabı Periyot", ["Aylık", "Yıllık"], "Yıllık")
-    st.session_state["s_ayakkabi_not"] = rv("Ayakkabı Not")
+    st.session_state["s_ayakkabi_not"] = rvs("Ayakkabı Not")
     # Yılbaşı
     st.session_state["s_yilbasi_tip"] = rs("Yılbaşı Tip", ["Net", "Brüt"], "Net")
     st.session_state["s_yilbasi_val"] = rf("Yılbaşı Tutar")
     st.session_state["s_yilbasi_per"] = rs("Yılbaşı Periyot", ["Aylık", "Yıllık"], "Yıllık")
-    st.session_state["s_yilbasi_not"] = rv("Yılbaşı Not")
+    st.session_state["s_yilbasi_not"] = rvs("Yılbaşı Not")
     # İzin
     st.session_state["s_iz_m"]   = rs("İzin Mod", ["Maktu", "Katsayı (Gün)"], "Maktu")
     st.session_state["s_iz_t"]   = rs("İzin Tip", ["Net", "Brüt"], "Net")
     st.session_state["s_iz_v"]   = rf("İzin Değer")
     st.session_state["s_iz_per"] = rs("İzin Periyot", ["Aylık", "Yıllık"], "Yıllık")
-    st.session_state["s_iz_not"] = rv("İzin Not")
+    st.session_state["s_iz_not"] = rvs("İzin Not")
     # Bayram
     st.session_state["s_ba_m"]   = rs("Bayram Mod", ["Maktu", "Katsayı (Gün)"], "Maktu")
     st.session_state["s_ba_t"]   = rs("Bayram Tip", ["Net", "Brüt"], "Net")
     st.session_state["s_ba_v"]   = rf("Bayram Değer")
     st.session_state["s_ba_per"] = rs("Bayram Periyot", ["Aylık", "Yıllık"], "Yıllık")
-    st.session_state["s_ba_not"] = rv("Bayram Not")
+    st.session_state["s_ba_not"] = rvs("Bayram Not")
     # Prim
     st.session_state["s_pr_m"]   = rs("Prim Mod", ["Maktu", "Katsayı (Gün)", "Yüzde (%)"], "Maktu")
     st.session_state["s_pr_t"]   = rs("Prim Tip", ["Net", "Brüt"], "Net")
     st.session_state["s_pr_v"]   = rf("Prim Değer")
     st.session_state["s_pr_per"] = rs("Prim Periyot", ["Aylık", "Yıllık"], "Aylık")
-    st.session_state["s_pr_not"] = rv("Prim Not")
+    st.session_state["s_pr_not"] = rvs("Prim Not")
     # İkramiye
     st.session_state["s_ikramiye"]     = ri("İkramiye Günü")
-    st.session_state["s_ikramiye_not"] = rv("İkramiye Not")
+    st.session_state["s_ikramiye_not"] = rvs("İkramiye Not")
     # Aile & Çocuk
     st.session_state["s_yasal_aile"]      = rv("Yasal Aile", "False") == "True"
     st.session_state["s_yasal_aile_pct"]  = rf("Yasal Aile Pct", 100.0)
     st.session_state["s_muaf_aile"]       = rv("Muafiyet Aile", "False") == "True"
     st.session_state["s_muaf_aile_pct"]   = rf("Muafiyet Aile Pct", 100.0)
     st.session_state["s_maktu_aile"]      = rf("Maktu Aile")
-    st.session_state["s_aile_not"]        = rv("Aile Not")
+    st.session_state["s_aile_not"]        = rvs("Aile Not")
     st.session_state["s_yasal_cocuk"]     = rv("Yasal Çocuk", "False") == "True"
     st.session_state["s_yasal_cocuk_pct"] = rf("Yasal Çocuk Pct", 100.0)
     st.session_state["s_muaf_cocuk"]      = rv("Muafiyet Çocuk", "False") == "True"
     st.session_state["s_muaf_cocuk_pct"]  = rf("Muafiyet Çocuk Pct", 100.0)
     st.session_state["s_maktu_cocuk"]     = rf("Maktu Çocuk Birim")
-    st.session_state["s_cocuk_not"]       = rv("Çocuk Not")
+    st.session_state["s_cocuk_not"]       = rvs("Çocuk Not")
     # Vardiya, Gece, Ek özel
     st.session_state["s_v_hesap"] = rs("Vardiya Hesap", ["Sabit", "Fiili (195/225)"], "Sabit")
     st.session_state["s_v_mod"]   = rs("Vardiya Mod", ["Maktu", "Yüzde (%)"], "Maktu")
     st.session_state["s_v_val"]   = rf("Vardiya Değer")
-    st.session_state["s_v_not"]   = rv("Vardiya Not")
+    st.session_state["s_v_not"]   = rvs("Vardiya Not")
     st.session_state["s_g_hesap"] = rs("Gece Hesap", ["Sabit", "Fiili (80/225)"], "Sabit")
     st.session_state["s_g_mod"]   = rs("Gece Mod", ["Maktu", "Yüzde (%)"], "Maktu")
     st.session_state["s_g_val"]   = rf("Gece Değer")
-    st.session_state["s_g_not"]   = rv("Gece Not")
+    st.session_state["s_g_not"]   = rvs("Gece Not")
     st.session_state["s_eo_tip"]  = rs("Ek Özel Tip", ["Günlük Ücret", "Aylık Ücret"], "Günlük Ücret")
     st.session_state["s_eo_mod"]  = rs("Ek Özel Mod", ["Katsayı", "Yüzde (%)"], "Katsayı")
     st.session_state["s_eo_val"]  = rf("Ek Özel Değer")
-    st.session_state["s_eo_not"]  = rv("Ek Özel Not")
+    st.session_state["s_eo_not"]  = rvs("Ek Özel Not")
     st.session_state["s_denge"]      = rv("Denge Aktif", "False") == "True"
     st.session_state["s_denge_oran"] = rf("Denge Oran", 11.0)
     st.session_state["s_sosyal_zam_pct"] = rf("Sosyal Zam Pct", 0.0)
