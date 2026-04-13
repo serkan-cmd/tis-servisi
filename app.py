@@ -54,7 +54,7 @@ SHEET_HEADERS = [
     "Ek Ödeme 1 Mod", "Ek Ödeme 1 Değer", "Ek Ödeme 1 Periyot", "Ek Ödeme 1 Tip", "Ek Ödeme 1 Zam",
     "Ek Ödeme 2 Mod", "Ek Ödeme 2 Değer", "Ek Ödeme 2 Periyot", "Ek Ödeme 2 Tip", "Ek Ödeme 2 Zam",
     "Gıda Tip", "Gıda Tutar", "Gıda Periyot", "Gıda Not",
-    "Yakacak Mod", "Yakacak KDV", "Yakacak Tutar", "Yakacak M3", "Yakacak Birim", "Yakacak Periyot", "Yakacak Not",
+    "Yakacak Mod", "Yakacak Tip", "Yakacak KDV", "Yakacak Tutar", "Yakacak M3", "Yakacak Birim", "Yakacak Periyot", "Yakacak Not",
     "Giyim Tip", "Giyim Tutar", "Giyim Periyot", "Giyim Not",
     "Ayakkabı Tip", "Ayakkabı Tutar", "Ayakkabı Periyot", "Ayakkabı Not",
     "Yılbaşı Tip", "Yılbaşı Tutar", "Yılbaşı Periyot", "Yılbaşı Not",
@@ -93,7 +93,7 @@ DEFAULTS = {
     "s_gida_tip": "Net", "s_gida_val": 0.0, "s_gida_per": "Aylık", "s_gida_not": "",
     # Yakacak
     "s_yakacak_mod": "Maktu", "s_yakacak_kdv": "KDV Dahil Değil",
-    "s_yakacak_val": 0.0, "s_yakacak_m3": 0.0, "s_yakacak_birim": 0.0,
+    "s_yakacak_tip": "Net", "s_yakacak_val": 0.0, "s_yakacak_m3": 0.0, "s_yakacak_birim": 0.0,
     "s_yakacak_per": "Yıllık", "s_yakacak_not": "",
     # Giyim
     "s_giyim_tip": "Net", "s_giyim_val": 0.0, "s_giyim_per": "Yıllık", "s_giyim_not": "",
@@ -241,6 +241,7 @@ def yukle_kayit(r):
     st.session_state["s_gida_per"] = rs("Gıda Periyot", ["Aylık", "Yıllık"], "Aylık")
     st.session_state["s_gida_not"] = rv("Gıda Not")
     # Yakacak
+    st.session_state["s_yakacak_tip"] = rs("Yakacak Tip", ["Net", "Brüt"], "Net")
     st.session_state["s_yakacak_mod"]   = rs("Yakacak Mod", ["Maktu", "Metreküp"], "Maktu")
     st.session_state["s_yakacak_kdv"]   = rs("Yakacak KDV", ["KDV Dahil Değil", "KDV Dahil"], "KDV Dahil Değil")
     st.session_state["s_yakacak_val"]   = rf("Yakacak Tutar")
@@ -387,15 +388,29 @@ def yakacak_hesapla():
     """Yakacak ödentisini brüt TL olarak döndürür (aylık)."""
     mod = st.session_state["s_yakacak_mod"]
     per = st.session_state["s_yakacak_per"]
+    tip = st.session_state["s_yakacak_tip"]
+
     if mod == "Maktu":
-        val = yardim_brutlestir(st.session_state["s_yakacak_val"], "Net", secilen_oran)
+        val = yardim_brutlestir(
+            st.session_state["s_yakacak_val"],
+            tip,
+            secilen_oran
+        )
     else:
         m3    = st.session_state["s_yakacak_m3"]
         birim = st.session_state["s_yakacak_birim"]
         kdv   = st.session_state["s_yakacak_kdv"]
-        net   = m3 * birim
-        val   = net * 1.20 if kdv == "KDV Dahil Değil" else net
-        val   = yardim_brutlestir(val, "Net", secilen_oran)
+
+        tutar = m3 * birim
+        if kdv == "KDV Dahil Değil":
+            tutar *= 1.20
+
+        val = yardim_brutlestir(
+            tutar,
+            tip,
+            secilen_oran
+        )
+
     return ayliklandir(val, per)
 
 # ============================================================
@@ -768,7 +783,9 @@ with tab2:
         with yh3: st.selectbox("", ["Maktu","Metreküp"], key="s_yakacak_mod", label_visibility="collapsed")
         if st.session_state["s_yakacak_mod"] == "Maktu":
             yc1, yc2, yc3 = st.columns([2, 1, 2])
-            with yc1: st.number_input("Tutar (Net TL)", min_value=0.0, key="s_yakacak_val")
+            with yc1:
+                st.radio("", ["Net","Brüt"], horizontal=True, key="s_yakacak_tip")
+                st.number_input("Tutar", min_value=0.0, key="s_yakacak_val")
             with yc2: st.number_input("+%", min_value=0.0, max_value=500.0, step=0.5,
                                        key="s_yakacak_zam", help="Yakacağa özel artış")
             with yc3: st.text_input("Not", key="s_yakacak_not", placeholder="Açıklama...")
