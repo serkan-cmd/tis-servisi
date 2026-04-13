@@ -407,7 +407,7 @@ def yakacak_hesapla():
         birim = st.session_state["s_yakacak_birim"]
         kdv   = st.session_state["s_yakacak_kdv"]
         tutar = m3 * birim
-        if kdv == "KDV Dahil Değil":
+        if kdv == "KDV Dahil":
             tutar *= 1.20
         val = yardim_brutlestir(tutar, tip, secilen_oran)
     return ayliklandir(val, per)
