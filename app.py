@@ -50,7 +50,7 @@ SHEET_HEADERS = [
     "Yabancı Ortak", "Ortak Ülke", "İşveren Sendikası", "Sektör", "Grup",
     "Şubeler", "Üye Sayısı", "Toplam Çalışan",
     "TİS Başlangıç", "TİS Bitiş", "Zam Planı Özeti",
-    "Ana Maaş Tipi", "Ana Maaş Tutar",
+    "Ana Ücret Tipi", "Ana Ücret Tutar",
     "Ek Ödeme 1 Mod", "Ek Ödeme 1 Değer", "Ek Ödeme 1 Periyot", "Ek Ödeme 1 Tip", "Ek Ödeme 1 Zam",
     "Ek Ödeme 2 Mod", "Ek Ödeme 2 Değer", "Ek Ödeme 2 Periyot", "Ek Ödeme 2 Tip", "Ek Ödeme 2 Zam",
     "Gıda Tip", "Gıda Tutar", "Gıda Periyot", "Gıda Not",
@@ -235,8 +235,8 @@ def yukle_kayit(r):
         if bas: st.session_state["s_tis_bas"] = datetime.strptime(bas, "%d/%m/%Y").date()
         if bit: st.session_state["s_tis_bit"] = datetime.strptime(bit, "%d/%m/%Y").date()
     except: pass
-    st.session_state["s_u_tipi"]  = rs("Ana Maaş Tipi", ["Net", "Brüt"], "Net")
-    st.session_state["s_u_tutar"] = rf("Ana Maaş Tutar", 20000.0)
+    st.session_state["s_u_tipi"]  = rs("Ana Ücret Tipi", ["Net", "Brüt"], "Net")
+    st.session_state["s_u_tutar"] = rf("Ana Ücret Tutar", 33030.0)
     st.session_state["s_ek1_mod"] = rs("Ek Ödeme 1 Mod", ["Maktu", "Katsayı (Gün)", "Yüzde (%)"], "Maktu")
     st.session_state["s_ek1_val"] = rf("Ek Ödeme 1 Değer")
     st.session_state["s_ek1_per"] = rs("Ek Ödeme 1 Periyot", ["Aylık", "Yıllık"], "Aylık")
@@ -407,7 +407,7 @@ def yakacak_hesapla():
         birim = st.session_state["s_yakacak_birim"]
         kdv   = st.session_state["s_yakacak_kdv"]
         tutar = m3 * birim
-        if kdv == "KDV Dahil Değil":
+        if kdv == "KDV Dahil":
             tutar *= 1.20
         val = yardim_brutlestir(tutar, tip, secilen_oran)
     return ayliklandir(val, per)
@@ -595,7 +595,7 @@ with tab1:
             hd1, hd2 = st.columns([3, 1])
             with hd1: st.markdown(f"**{i+1}. Zam Dönemi**")
             with hd2: z_uygula = st.checkbox("✅ Hesaba Kat", key=f"z_uygula_{i}",
-                                              help="Bu zammı maaş hesabına dahil etmek için işaretleyin.")
+                                              help="Bu zammı ücret hesabına dahil etmek için işaretleyin.")
             ct1, ct2, ct3 = st.columns([1,1,2])
             with ct1: z_yil = st.selectbox("Yıl", [2024,2025,2026,2027,2028], key=f"z_yil_{i}")
             with ct2: z_ay  = st.selectbox("Ay", AYLAR, key=f"z_ay_{i}")
@@ -673,7 +673,7 @@ with tab2:
     uygulanan = [d for d in zam_listesi if d.get("uygula", False)]
     if zam_listesi:
         if uygulanan:
-            st.info(f"📊 {len(uygulanan)} zam uygulandı → Ana Maaş: **{a_brut:,.2f} TL** (Girilen: {maas_base:,.2f} TL)")
+            st.info(f"📊 {len(uygulanan)} zam uygulandı → Ana Ücret: **{a_brut:,.2f} TL** (Girilen: {maas_base:,.2f} TL)")
         else:
             st.warning(f"📋 {len(zam_listesi)} zam kayıtlı, hiçbiri işaretlenmemiş → **{a_brut:,.2f} TL**")
 
@@ -1033,7 +1033,7 @@ with tab2:
     r2.metric("🎁 Sosyal Paket", f"{toplam_sosyal:,.2f} TL")
     r3.metric("💵 Ana Ücret (Brüt)", f"{a_brut:,.2f} TL")
     st.table(pd.DataFrame({
-        "Kalem": ["Ana Maaş", "Ek Ödemeler (1+2)", "Sosyal Paket", "Vardiya/Gece/Özel"],
+        "Kalem": ["Ana Ücret", "Ek Ödemeler (1+2)", "Sosyal Paket", "Vardiya/Gece/Özel"],
         "Aylık Tutar (TL)": [f"{a_brut:,.2f}", f"{ay_ek1+ay_ek2:,.2f}",
                               f"{toplam_sosyal-v_tutar-g_tutar-ay_ek_ozel:,.2f}",
                               f"{v_tutar+g_tutar+ay_ek_ozel:,.2f}"]
@@ -1205,7 +1205,7 @@ with tab3:
             for _, row in df3.iterrows():
                 for s in str(row.get("Şubeler","")).split(","):
                     s = s.strip()
-                    if s: sube_rows.append({"Şube":s,"Çıplak":row.get("Ana Ücret (Brüt)",0),"Giydirilmiş":row.get("Toplam Maliyet",0)})
+                    if s: sube_rows.append({"Şube":s,"Çıplak":row.get("Ana Ücret (Brüt)",0),"Giydirilmiş":row.get("Giydirilmiş Ücret",0)})
             if sube_rows:
                 sube_df   = pd.DataFrame(sube_rows)
                 sube_ozet = sube_df.groupby("Şube").agg(
@@ -1223,7 +1223,7 @@ with tab3:
             st.markdown("**Sektör**")
             if "Sektör" in df3.columns:
                 sek_ozet = df3.groupby("Sektör").agg(
-                    İşyeri=("Ana Ücret (Brüt)","count"), Ort_Çıplak=("Ana Ücret (Brüt)","mean"), Ort_Giydirilmiş=("Toplam Maliyet","mean")
+                    İşyeri=("Ana Ücret (Brüt)","count"), Ort_Çıplak=("Ana Ücret (Brüt)","mean"), Ort_Giydirilmiş=("Giydirilmiş Ücret","mean")
                 ).reset_index().sort_values("Ort_Çıplak", ascending=False)
                 sek_ozet["Ort_Çıplak"]      = sek_ozet["Ort_Çıplak"].map("{:,.0f} TL".format)
                 sek_ozet["Ort_Giydirilmiş"] = sek_ozet["Ort_Giydirilmiş"].map("{:,.0f} TL".format)
@@ -1233,7 +1233,7 @@ with tab3:
             st.markdown("**Grup**")
             if "Grup" in df3.columns:
                 grup_ozet = df3.groupby("Grup").agg(
-                    İşyeri=("Ana Ücret (Brüt)","count"), Ort_Çıplak=("Ana Ücret (Brüt)","mean"), Ort_Giydirilmiş=("Toplam Maliyet","mean")
+                    İşyeri=("Ana Ücret (Brüt)","count"), Ort_Çıplak=("Ana Ücret (Brüt)","mean"), Ort_Giydirilmiş=("Giydirilmiş Ücret","mean")
                 ).reset_index().sort_values("Ort_Çıplak", ascending=False)
                 grup_ozet["Ort_Çıplak"]      = grup_ozet["Ort_Çıplak"].map("{:,.0f} TL".format)
                 grup_ozet["Ort_Giydirilmiş"] = grup_ozet["Ort_Giydirilmiş"].map("{:,.0f} TL".format)
@@ -1247,7 +1247,7 @@ with tab3:
             if secilen:
                 sec_row           = df3[df3["İşyeri"]==secilen].iloc[0]
                 genel_ort_maas    = df3["Ana Ücret (Brüt)"].mean()
-                genel_ort_maliyet = df3["Toplam Maliyet"].mean()
+                genel_ort_maliyet = df3["Giydirilmiş Ücret"].mean()
                 def safe_float(val):
                     try:
                         s = str(val).strip().replace(" ","").replace(",",".")
@@ -1255,7 +1255,7 @@ with tab3:
                         return f if f == f else 0.0  # nan check
                     except: return 0.0
                 isyeri_maas    = safe_float(sec_row.get("Ana Ücret (Brüt)", 0))
-                isyeri_maliyet = safe_float(sec_row.get("Toplam Maliyet", 0))
+                isyeri_maliyet = safe_float(sec_row.get("Giydirilmiş Ücret", 0))
                 kk1, kk2 = st.columns(2)
                 with kk1: st.metric("Çıplak Ücret", f"{isyeri_maas:,.0f} TL",
                                      delta=f"{isyeri_maas-genel_ort_maas:+,.0f} TL (genel ort.)")
@@ -1266,20 +1266,20 @@ with tab3:
                     sk1, sk2 = st.columns(2)
                     with sk1: st.metric(f"{sek} Ort. Çıplak", f"{sek_df['Ana Ücret (Brüt)'].mean():,.0f} TL",
                                          delta=f"{isyeri_maas-sek_df['Ana Ücret (Brüt)'].mean():+,.0f} TL")
-                    with sk2: st.metric(f"{sek} Ort. Giydirilmiş", f"{sek_df['Toplam Maliyet'].mean():,.0f} TL",
-                                         delta=f"{isyeri_maliyet-sek_df['Toplam Maliyet'].mean():+,.0f} TL")
+                    with sk2: st.metric(f"{sek} Ort. Giydirilmiş", f"{sek_df['Giydirilmiş Ücret'].mean():,.0f} TL",
+                                         delta=f"{isyeri_maliyet-sek_df['Giydirilmiş Ücret'].mean():+,.0f} TL")
                 if "Grup" in df3.columns and sec_row.get("Grup"):
                     grp = sec_row.get("Grup"); grp_df = df3[df3["Grup"]==grp]
                     gk1, gk2 = st.columns(2)
                     with gk1: st.metric(f"{grp} Grubu Ort. Çıplak", f"{grp_df['Ana Ücret (Brüt)'].mean():,.0f} TL",
                                          delta=f"{isyeri_maas-grp_df['Ana Ücret (Brüt)'].mean():+,.0f} TL")
-                    with gk2: st.metric(f"{grp} Grubu Ort. Giydirilmiş", f"{grp_df['Toplam Maliyet'].mean():,.0f} TL",
-                                         delta=f"{isyeri_maliyet-grp_df['Toplam Maliyet'].mean():+,.0f} TL")
+                    with gk2: st.metric(f"{grp} Grubu Ort. Giydirilmiş", f"{grp_df['Giydirilmiş Ücret'].mean():,.0f} TL",
+                                         delta=f"{isyeri_maliyet-grp_df['Giydirilmiş Ücret'].mean():+,.0f} TL")
 
         st.divider()
         st.subheader("📋 Tüm Kayıtlar")
         goster_cols = [c for c in ["İşyeri","Sektör","Grup","Şubeler","Üye Sayısı",
-                                    "TİS Başlangıç","TİS Bitiş","Ana Ücret (Brüt)","Sosyal Paket","Toplam Maliyet"]
+                                    "TİS Başlangıç","TİS Bitiş","Ana Ücret (Brüt)","Sosyal Paket","Giydirilmiş Ücret"]
                        if c in df3.columns]
-        st.dataframe(df3[goster_cols].sort_values("Toplam Maliyet", ascending=False),
+        st.dataframe(df3[goster_cols].sort_values("Giydirilmiş Ücret", ascending=False),
                      use_container_width=True, hide_index=True)
