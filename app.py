@@ -236,7 +236,7 @@ def yukle_kayit(r):
         if bit: st.session_state["s_tis_bit"] = datetime.strptime(bit, "%d/%m/%Y").date()
     except: pass
     st.session_state["s_u_tipi"]  = rs("Ana Maaş Tipi", ["Net", "Brüt"], "Net")
-    st.session_state["s_u_tutar"] = rf("Ana Maaş Tutar", 20000.0)
+    st.session_state["s_u_tutar"] = rf("Ana Maaş Tutar", 33030.0)
     st.session_state["s_ek1_mod"] = rs("Ek Ödeme 1 Mod", ["Maktu", "Katsayı (Gün)", "Yüzde (%)"], "Maktu")
     st.session_state["s_ek1_val"] = rf("Ek Ödeme 1 Değer")
     st.session_state["s_ek1_per"] = rs("Ek Ödeme 1 Periyot", ["Aylık", "Yıllık"], "Aylık")
