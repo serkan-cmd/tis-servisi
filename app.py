@@ -84,7 +84,7 @@ DEFAULTS = {
     "s_tis_bas": datetime.now().date(),
     "s_tis_bit": datetime.now().replace(year=datetime.now().year + 2).date(),
     "s_zam_verileri": [],
-    "s_u_tipi": "Net", "s_u_tutar": 20000.0,
+    "s_u_tipi": "Net", "s_u_tutar": 33030.0,
     "s_ek1_mod": "Maktu", "s_ek1_val": 0.0, "s_ek1_per": "Aylık",
     "s_ek1_tip": "Net", "s_ek1_zam": 0.0,
     "s_ek2_mod": "Maktu", "s_ek2_val": 0.0, "s_ek2_per": "Aylık",
