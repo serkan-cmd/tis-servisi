@@ -21,7 +21,7 @@ GRUPLAR = ["Petrol", "Petrol Depolama", "Genel Kimya", "Boya", "Plastik",
            "Otomotiv Yan Sanayi", "Lastik", "Gübre", "İlaç", "Cam", "Diğer"]
 
 ULKELER = [
-    "Türkiye","Almanya","Fransa","İngiltere","İtalya","ABD","Japonya",
+    "Almanya","Fransa","İngiltere","İtalya","ABD","Japonya",
     "Hollanda","İsviçre","İsveç","Avustralya","Avusturya","Belçika",
     "Kanada","Azerbaycan","Çin","Güney Kore","Hindistan","Brezilya",
     "Meksika","İspanya","Portekiz","Danimarka","Norveç","Finlandiya",
