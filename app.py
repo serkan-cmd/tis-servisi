@@ -678,20 +678,25 @@ with tab1:
 # ============================================================
 with tab2:
     st.header("💰 Ücret ve Ek Ödemeler")
-    # Net seçiliyken yeşil arka plan CSS
-    _net_style = """<style>
-    div[data-testid="stRadio"] label {font-weight:500;}
-    </style>"""
-    st.markdown(_net_style, unsafe_allow_html=True)
-    def net_bg(tip_key):
-        """Net seçiliyse yeşil arka plan kutusu döndürür."""
-        if st.session_state.get(tip_key) == "Net":
-            return "background-color:#1a3a1a;border-radius:6px;padding:4px 8px;color:#4caf50;font-size:0.8em;font-weight:600;"
-        return "background-color:#2a1a1a;border-radius:6px;padding:4px 8px;color:#ef5350;font-size:0.8em;font-weight:600;"
+    def net_badge(tip_key, etiket=""):
+        """Net seçiliyse yeşil, Brüt seçiliyse kırmızı renkli badge gösterir."""
+        tip = st.session_state.get(tip_key, "Net")
+        if tip == "Net":
+            renk = "#1b5e20"; yazi = "#a5d6a7"; simge = "🟢"
+        else:
+            renk = "#b71c1c"; yazi = "#ef9a9a"; simge = "🔴"
+        label = etiket if etiket else tip
+        st.markdown(
+            f'<div style="background:{renk};border-radius:5px;padding:3px 10px;'
+            f'display:inline-block;color:{yazi};font-size:0.8em;font-weight:600;margin-bottom:4px;">'
+            f'{simge} {label} — {tip}</div>',
+            unsafe_allow_html=True
+        )
 
     c1, c2, c3 = st.columns(3)
     with c1:
         st.radio("Ücret Tipi", ["Net", "Brüt"], key="s_u_tipi")
+        net_badge("s_u_tipi", "Çıplak Ücret")
         st.number_input("Çıplak Ücret (Girilen Değer)", min_value=0.0, key="s_u_tutar")
     with c2:
         with st.container(border=True):
@@ -700,7 +705,9 @@ with tab2:
             with ek1h2: st.selectbox("", ["Aylık","Yıllık"], key="s_ek1_per", label_visibility="collapsed")
             st.selectbox("Mod", ["Maktu","Katsayı (Gün)","Yüzde (%)"], key="s_ek1_mod")
             ek1r1, ek1r2 = st.columns([2,1])
-            with ek1r1: st.radio("", ["Net","Brüt"], horizontal=True, key="s_ek1_tip")
+            with ek1r1:
+                st.radio("", ["Net","Brüt"], horizontal=True, key="s_ek1_tip")
+                net_badge("s_ek1_tip")
             with ek1r2: st.number_input("+%", min_value=0.0, max_value=500.0, step=0.5,
                                          key="s_ek1_zam", help="Ek Ödeme 1'e özel artış")
             st.number_input("Değer", min_value=0.0, key="s_ek1_val")
@@ -712,7 +719,9 @@ with tab2:
             with ek2h2: st.selectbox("", ["Aylık","Yıllık"], key="s_ek2_per", label_visibility="collapsed")
             st.selectbox("Mod", ["Maktu","Katsayı (Gün)","Yüzde (%)"], key="s_ek2_mod")
             ek2r1, ek2r2 = st.columns([2,1])
-            with ek2r1: st.radio("", ["Net","Brüt"], horizontal=True, key="s_ek2_tip")
+            with ek2r1:
+                st.radio("", ["Net","Brüt"], horizontal=True, key="s_ek2_tip")
+                net_badge("s_ek2_tip")
             with ek2r2: st.number_input("+%", min_value=0.0, max_value=500.0, step=0.5,
                                          key="s_ek2_zam", help="Ek Ödeme 2'ye özel artış")
             st.number_input("Değer", min_value=0.0, key="s_ek2_val")
@@ -799,7 +808,9 @@ with tab2:
             with h2: st.selectbox("", ["Yıllık","Aylık"], key="s_iz_per", label_visibility="collapsed")
             st.selectbox("Mod", ["Maktu","Katsayı (Gün)"], key="s_iz_m")
             c1,c2,c3 = st.columns([2,1,2])
-            with c1: st.radio("", ["Net","Brüt"], horizontal=True, key="s_iz_t")
+            with c1:
+                st.radio("", ["Net","Brüt"], horizontal=True, key="s_iz_t")
+                net_badge("s_iz_t", "İzin")
             with c2: st.number_input("+%", min_value=0.0, max_value=500.0, step=0.5,
                                      key="s_iz_zam", help="İzin parasına özel artış")
             with c3: st.text_input("Not", key="s_iz_not", placeholder="Açıklama...")
@@ -816,7 +827,9 @@ with tab2:
             with h2: st.selectbox("", ["Yıllık","Aylık"], key="s_ba_per", label_visibility="collapsed")
             st.selectbox("Mod", ["Maktu","Katsayı (Gün)"], key="s_ba_m")
             c1,c2,c3 = st.columns([2,1,2])
-            with c1: st.radio("", ["Net","Brüt"], horizontal=True, key="s_ba_t")
+            with c1:
+                st.radio("", ["Net","Brüt"], horizontal=True, key="s_ba_t")
+                net_badge("s_ba_t", "Bayram")
             with c2: st.number_input("+%", min_value=0.0, max_value=500.0, step=0.5,
                                      key="s_ba_zam", help="Bayram parasına özel artış")
             with c3: st.text_input("Not", key="s_ba_not", placeholder="Açıklama...")
@@ -836,6 +849,7 @@ with tab2:
         if st.session_state["s_yakacak_mod"] == "Maktu":
             # Net/Brüt + tutar | +% | Not
             st.radio("", ["Net","Brüt"], horizontal=True, key="s_yakacak_tip")
+            net_badge("s_yakacak_tip", "Yakacak")
             yc1, yc2, yc3 = st.columns([2, 1, 2])
             with yc1: st.number_input("Tutar", min_value=0.0, key="s_yakacak_val")
             with yc2: st.number_input("+%", min_value=0.0, max_value=500.0, step=0.5,
@@ -869,6 +883,7 @@ with tab2:
             with h1: st.markdown("👕 **Giyim Parası**")
             with h2: st.selectbox("", ["Yıllık","Aylık"], key="s_giyim_per", label_visibility="collapsed")
             st.radio("", ["Net","Brüt"], horizontal=True, key="s_giyim_tip")
+            net_badge("s_giyim_tip", "Giyim")
             c1,c2,c3 = st.columns([2,1,2])
             with c1: st.number_input("Tutar", min_value=0.0, key="s_giyim_val")
             with c2: st.number_input("+%", min_value=0.0, max_value=500.0, step=0.5,
@@ -884,6 +899,7 @@ with tab2:
             with h1: st.markdown("👟 **Ayakkabı Parası**")
             with h2: st.selectbox("", ["Yıllık","Aylık"], key="s_ayakkabi_per", label_visibility="collapsed")
             st.radio("", ["Net","Brüt"], horizontal=True, key="s_ayakkabi_tip")
+            net_badge("s_ayakkabi_tip", "Ayakkabı")
             c1,c2,c3 = st.columns([2,1,2])
             with c1: st.number_input("Tutar", min_value=0.0, key="s_ayakkabi_val")
             with c2: st.number_input("+%", min_value=0.0, max_value=500.0, step=0.5,
@@ -902,6 +918,7 @@ with tab2:
             with h1: st.markdown("🍞 **Gıda Parası**")
             with h2: st.selectbox("", ["Yıllık","Aylık"], key="s_gida_per", label_visibility="collapsed")
             st.radio("", ["Net","Brüt"], horizontal=True, key="s_gida_tip")
+            net_badge("s_gida_tip", "Gıda")
             c1,c2,c3 = st.columns([2,1,2])
             with c1: st.number_input("Tutar", min_value=0.0, key="s_gida_val")
             with c2: st.number_input("+%", min_value=0.0, max_value=500.0, step=0.5,
@@ -917,6 +934,7 @@ with tab2:
             with h1: st.markdown("🎁 **Yılbaşı Parası**")
             with h2: st.selectbox("", ["Yıllık","Aylık"], key="s_yilbasi_per", label_visibility="collapsed")
             st.radio("", ["Net","Brüt"], horizontal=True, key="s_yilbasi_tip")
+            net_badge("s_yilbasi_tip", "Yılbaşı")
             c1,c2,c3 = st.columns([2,1,2])
             with c1: st.number_input("Tutar", min_value=0.0, key="s_yilbasi_val")
             with c2: st.number_input("+%", min_value=0.0, max_value=500.0, step=0.5,
@@ -971,7 +989,9 @@ with tab2:
         with ph2: st.selectbox("", ["Aylık","Yıllık"], key="s_pr_per", label_visibility="collapsed")
         pc1, pc2, pc3 = st.columns([2, 2, 1])
         with pc1: st.selectbox("Mod", ["Maktu","Katsayı (Gün)","Yüzde (%)"], key="s_pr_m")
-        with pc2: st.radio("", ["Net","Brüt"], horizontal=True, key="s_pr_t")
+        with pc2:
+            st.radio("", ["Net","Brüt"], horizontal=True, key="s_pr_t")
+            net_badge("s_pr_t", "Prim")
         with pc3: st.number_input("+%", min_value=0.0, max_value=500.0, step=0.5,
                                    key="s_pr_zam", help="Prime özel artış")
         pd1, pd2 = st.columns([2, 3])
