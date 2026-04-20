@@ -21,7 +21,7 @@ GRUPLAR = ["Petrol", "Petrol Depolama", "Genel Kimya", "Boya", "Plastik",
            "Otomotiv Yan Sanayi", "Lastik", "Gübre", "İlaç", "Cam", "Diğer"]
 
 ULKELER = [
-    "Almanya","Fransa","İngiltere","İtalya","ABD","Japonya",
+    "Türkiye","Almanya","Fransa","İngiltere","İtalya","ABD","Japonya",
     "Hollanda","İsviçre","İsveç","Avustralya","Avusturya","Belçika",
     "Kanada","Azerbaycan","Çin","Güney Kore","Hindistan","Brezilya",
     "Meksika","İspanya","Portekiz","Danimarka","Norveç","Finlandiya",
@@ -48,11 +48,11 @@ SHEET_KEY = "1kb6ceU5NjBNl1PB3vCspw90s8lYRVU7XVbMt97tfEbg"
 SHEET_HEADERS = [
     "Kayıt Tarihi", "Uzman", "İşyeri", "İşyeri Tipi", "Grev Durumu",
     "Yabancı Ortak", "Ortak Ülke", "İşveren Sendikası", "Sektör", "Grup",
-    "Şubeler", "Üye Sayısı", "Toplam Çalışan",
+    "Şubeler", "Üye Sayısı", "Şube Üye Dağılımı", "Toplam Çalışan",
     "TİS Başlangıç", "TİS Bitiş", "Zam Planı Özeti",
-    "Ana Maaş Tipi", "Ana Maaş Tutar",
-    "Ek Ödeme 1 Mod", "Ek Ödeme 1 Değer", "Ek Ödeme 1 Periyot", "Ek Ödeme 1 Tip", "Ek Ödeme 1 Zam",
-    "Ek Ödeme 2 Mod", "Ek Ödeme 2 Değer", "Ek Ödeme 2 Periyot", "Ek Ödeme 2 Tip", "Ek Ödeme 2 Zam",
+    "Ücret Tipi İstatistik", "Ana Maaş Tipi", "Ana Maaş Tutar",
+    "Ek Ödeme 1 Mod", "Ek Ödeme 1 Değer", "Ek Ödeme 1 Periyot", "Ek Ödeme 1 Tip", "Ek Ödeme 1 Zam", "Ek Ödeme 1 Not",
+    "Ek Ödeme 2 Mod", "Ek Ödeme 2 Değer", "Ek Ödeme 2 Periyot", "Ek Ödeme 2 Tip", "Ek Ödeme 2 Zam", "Ek Ödeme 2 Not",
     "Gıda Tip", "Gıda Tutar", "Gıda Periyot", "Gıda Not",
     "Yakacak Mod", "Yakacak KDV", "Yakacak Tutar", "Yakacak M3", "Yakacak Birim", "Yakacak Periyot", "Yakacak Not",
     "Giyim Tip", "Giyim Tutar", "Giyim Periyot", "Giyim Not",
@@ -70,7 +70,7 @@ SHEET_HEADERS = [
     "Denge Aktif", "Denge Oran",
     "Sosyal Zam Pct",
     "Zam JSON",
-    "Ana Ücret (Brüt)", "Sosyal Paket", "Toplam Maliyet"
+    "Ana Maaş (Brüt)", "Sosyal Paket", "Toplam Maliyet"
 ]
 
 # ============================================================
@@ -84,13 +84,15 @@ DEFAULTS = {
     "s_tis_bas": datetime.now().date(),
     "s_tis_bit": datetime.now().replace(year=datetime.now().year + 2).date(),
     "s_zam_verileri": [],
-    "s_u_tipi": "Net", "s_u_tutar": 33030.0,
+    "s_ucret_tipi_istatistik": "Net",
+    "s_u_tipi": "Net", "s_u_tutar": 20000.0,
     "s_ek1_mod": "Maktu", "s_ek1_val": 0.0, "s_ek1_per": "Aylık",
-    "s_ek1_tip": "Net", "s_ek1_zam": 0.0,
+    "s_ek1_tip": "Net", "s_ek1_zam": 0.0, "s_ek1_not": "",
     "s_ek2_mod": "Maktu", "s_ek2_val": 0.0, "s_ek2_per": "Aylık",
-    "s_ek2_tip": "Net", "s_ek2_zam": 0.0,
+    "s_ek2_tip": "Net", "s_ek2_zam": 0.0, "s_ek2_not": "",
+    "s_sube_uye": {},
     # Gıda
-    "s_gida_tip": "Net", "s_gida_val": 0.0, "s_gida_per": "Aylık", "s_gida_not": "",
+    "s_gida_tip": "Net", "s_gida_val": 0.0, "s_gida_per": "Yıllık", "s_gida_not": "",
     # Yakacak
     "s_yakacak_mod": "Maktu", "s_yakacak_tip": "Net", "s_yakacak_kdv": "KDV Dahil Değil",
     "s_yakacak_val": 0.0, "s_yakacak_m3": 0.0, "s_yakacak_birim": 0.0,
@@ -182,7 +184,7 @@ def sifirla():
     for k in list(st.session_state.keys()):
         if any(k.startswith(p) for p in ["z_yil_","z_ay_","z_not_","h_tipi_","z_uygula_",
                                            "k_sayisi_","k_tip_","k_val_","k_kidem_","k_ort_kidem_",
-                                           "n_donem_sayisi"]):
+                                           "n_donem_sayisi","sube_uye_"]):
             del st.session_state[k]
 
 # ============================================================
@@ -235,18 +237,27 @@ def yukle_kayit(r):
         if bas: st.session_state["s_tis_bas"] = datetime.strptime(bas, "%d/%m/%Y").date()
         if bit: st.session_state["s_tis_bit"] = datetime.strptime(bit, "%d/%m/%Y").date()
     except: pass
+    st.session_state["s_ucret_tipi_istatistik"] = rs("Ücret Tipi İstatistik", ["Net", "Brüt"], "Net")
     st.session_state["s_u_tipi"]  = rs("Ana Maaş Tipi", ["Net", "Brüt"], "Net")
-    st.session_state["s_u_tutar"] = rf("Ana Maaş Tutar", 33030.0)
+    st.session_state["s_u_tutar"] = rf("Ana Maaş Tutar", 20000.0)
     st.session_state["s_ek1_mod"] = rs("Ek Ödeme 1 Mod", ["Maktu", "Katsayı (Gün)", "Yüzde (%)"], "Maktu")
     st.session_state["s_ek1_val"] = rf("Ek Ödeme 1 Değer")
     st.session_state["s_ek1_per"] = rs("Ek Ödeme 1 Periyot", ["Aylık", "Yıllık"], "Aylık")
     st.session_state["s_ek1_tip"] = rs("Ek Ödeme 1 Tip", ["Net", "Brüt"], "Net")
     st.session_state["s_ek1_zam"] = rf("Ek Ödeme 1 Zam", 0.0)
+    st.session_state["s_ek1_not"] = rvs("Ek Ödeme 1 Not")
     st.session_state["s_ek2_mod"] = rs("Ek Ödeme 2 Mod", ["Maktu", "Katsayı (Gün)", "Yüzde (%)"], "Maktu")
     st.session_state["s_ek2_val"] = rf("Ek Ödeme 2 Değer")
     st.session_state["s_ek2_per"] = rs("Ek Ödeme 2 Periyot", ["Aylık", "Yıllık"], "Aylık")
     st.session_state["s_ek2_tip"] = rs("Ek Ödeme 2 Tip", ["Net", "Brüt"], "Net")
     st.session_state["s_ek2_zam"] = rf("Ek Ödeme 2 Zam", 0.0)
+    st.session_state["s_ek2_not"] = rvs("Ek Ödeme 2 Not")
+    # Şube üye dağılımı
+    try:
+        sube_uye_str = rv("Şube Üye Dağılımı", "{}")
+        st.session_state["s_sube_uye"] = json.loads(sube_uye_str) if sube_uye_str else {}
+    except:
+        st.session_state["s_sube_uye"] = {}
     # Gıda
     st.session_state["s_gida_tip"] = rs("Gıda Tip", ["Net", "Brüt"], "Net")
     st.session_state["s_gida_val"] = rf("Gıda Tutar")
@@ -522,6 +533,8 @@ with tab1:
         st.text_input("İşyeri / İşletme Adı", key="s_isyeri")
         st.radio("Tipi", ["İşyeri", "İşletme"], key="s_isyeri_tipi", horizontal=True)
         st.selectbox("Grev Yasağı", ["Grev Yasağı Yok", "Grev Yasağı Var"], key="s_grev")
+        st.radio("💡 Ücret Tipi (İstatistik)", ["Net", "Brüt"], key="s_ucret_tipi_istatistik",
+                 horizontal=True, help="Sadece istatistik amaçlıdır. Hesaplamalara dahil edilmez.")
         st.subheader("🌍 Ortaklık Bilgisi")
         st.checkbox("Yabancı Ortaklı", key="s_yabanci")
         if st.session_state["s_yabanci"]:
@@ -535,7 +548,25 @@ with tab1:
         st.multiselect("Bağlı Şubeler", SUBELER, key="s_subeler")
     with col_b:
         st.subheader("👥 Üye / Çalışan")
-        st.number_input("Sendikalı Üye Sayısı", min_value=0, key="s_uye")
+        secili_subeler = st.session_state.get("s_subeler", [])
+        if secili_subeler:
+            # Şube bazlı üye sayısı
+            st.caption("📌 Şube bazlı üye sayısı")
+            sube_uye = st.session_state.get("s_sube_uye", {})
+            toplam_uye = 0
+            for sube in secili_subeler:
+                key = f"sube_uye_{sube}"
+                mevcut = sube_uye.get(sube, 0)
+                if key not in st.session_state:
+                    st.session_state[key] = mevcut
+                val = st.number_input(f"{sube}", min_value=0, key=key)
+                toplam_uye += val
+            # s_sube_uye ve s_uye güncelle
+            st.session_state["s_sube_uye"] = {s: st.session_state.get(f"sube_uye_{s}", 0) for s in secili_subeler}
+            st.session_state["s_uye"] = toplam_uye
+            st.info(f"Toplam Sendikalı Üye: **{toplam_uye:,}**")
+        else:
+            st.number_input("Sendikalı Üye Sayısı", min_value=0, key="s_uye")
         st.number_input("Toplam Çalışan Sayısı", min_value=0, key="s_calisan")
         st.subheader("📅 TİS Dönemi")
         st.date_input("Başlangıç Tarihi", key="s_tis_bas")
@@ -639,6 +670,16 @@ with tab1:
 # ============================================================
 with tab2:
     st.header("💰 Ücret ve Ek Ödemeler")
+    # Net seçiliyken yeşil arka plan CSS
+    _net_style = """<style>
+    div[data-testid="stRadio"] label {font-weight:500;}
+    </style>"""
+    st.markdown(_net_style, unsafe_allow_html=True)
+    def net_bg(tip_key):
+        """Net seçiliyse yeşil arka plan kutusu döndürür."""
+        if st.session_state.get(tip_key) == "Net":
+            return "background-color:#1a3a1a;border-radius:6px;padding:4px 8px;color:#4caf50;font-size:0.8em;font-weight:600;"
+        return "background-color:#2a1a1a;border-radius:6px;padding:4px 8px;color:#ef5350;font-size:0.8em;font-weight:600;"
 
     c1, c2, c3 = st.columns(3)
     with c1:
@@ -655,6 +696,7 @@ with tab2:
             with ek1r2: st.number_input("+%", min_value=0.0, max_value=500.0, step=0.5,
                                          key="s_ek1_zam", help="Ek Ödeme 1'e özel artış")
             st.number_input("Değer", min_value=0.0, key="s_ek1_val")
+            st.text_input("Açıklama", key="s_ek1_not", placeholder="Ek Ödeme 1 notu...")
     with c3:
         with st.container(border=True):
             ek2h1, ek2h2 = st.columns([3,1])
@@ -666,6 +708,7 @@ with tab2:
             with ek2r2: st.number_input("+%", min_value=0.0, max_value=500.0, step=0.5,
                                          key="s_ek2_zam", help="Ek Ödeme 2'ye özel artış")
             st.number_input("Değer", min_value=0.0, key="s_ek2_val")
+            st.text_input("Açıklama", key="s_ek2_not", placeholder="Ek Ödeme 2 notu...")
 
     maas_base   = maas_brutlestir(st.session_state["s_u_tutar"], st.session_state["s_u_tipi"], secilen_oran)
     zam_listesi = st.session_state.get("s_zam_verileri", [])
@@ -849,7 +892,7 @@ with tab2:
         with st.container(border=True):
             h1, h2 = st.columns([3, 1])
             with h1: st.markdown("🍞 **Gıda Parası**")
-            with h2: st.selectbox("", ["Aylık","Yıllık"], key="s_gida_per", label_visibility="collapsed")
+            with h2: st.selectbox("", ["Yıllık","Aylık"], key="s_gida_per", label_visibility="collapsed")
             st.radio("", ["Net","Brüt"], horizontal=True, key="s_gida_tip")
             c1,c2,c3 = st.columns([2,1,2])
             with c1: st.number_input("Tutar", min_value=0.0, key="s_gida_val")
@@ -978,6 +1021,8 @@ with tab2:
               * (1 + st.session_state["s_ek1_zam"]/100))
     ay_ek2 = ((_ek2_ham if ek2_per=="Aylık" else _ek2_ham/12)
               * (1 + st.session_state["s_ek2_zam"]/100))
+    if ay_ek1 > 0: st.caption(f"💼 Ek Ödeme 1 aylık brüt: **{ay_ek1:,.2f} TL**")
+    if ay_ek2 > 0: st.caption(f"💼 Ek Ödeme 2 aylık brüt: **{ay_ek2:,.2f} TL**")
 
     # Aile/Çocuk hesabı (yüzde oranı uygulanır)
     yasal_aile_t  = aile_yasal_sabit * (st.session_state["s_yasal_aile_pct"]/100) if st.session_state["s_yasal_aile"] else 0
@@ -986,6 +1031,7 @@ with tab2:
     muaf_cocuk_t  = muafiyet_cocuk   * (st.session_state["s_muaf_cocuk_pct"]/100)  if st.session_state["s_muaf_cocuk"]  else 0
     ay_aile_cocuk = (yasal_aile_t + muaf_aile_t + st.session_state["s_maktu_aile"] +
                      yasal_cocuk_t + muaf_cocuk_t + st.session_state["s_maktu_cocuk"]*2)
+    if ay_aile_cocuk > 0: st.caption(f"👨‍👩‍👧 Aile & Çocuk aylık brüt: **{ay_aile_cocuk:,.2f} TL**")
 
     v_tutar = calc_hybrid(st.session_state["s_v_val"], st.session_state["s_v_mod"], g_brut)
     if st.session_state["s_v_hesap"] == "Fiili (195/225)": v_tutar = v_tutar * 195/225
@@ -1021,6 +1067,11 @@ with tab2:
         ay_denge = baz * (st.session_state["s_denge_oran"]/100)
         st.metric("Denge Ödentisi", f"{ay_denge:,.2f} TL")
     else: ay_denge = 0.0
+    # Vardiya / Gece / Ek Özel / Denge göster
+    if v_tutar > 0:     st.caption(f"🔄 Vardiya aylık brüt: **{v_tutar:,.2f} TL**")
+    if g_tutar > 0:     st.caption(f"🌙 Gece Zammı aylık brüt: **{g_tutar:,.2f} TL**")
+    if ay_ek_ozel > 0:  st.caption(f"➕ Ek Özel aylık brüt: **{ay_ek_ozel:,.2f} TL**")
+    if ay_denge > 0:    st.caption(f"📈 Denge aylık brüt: **{ay_denge:,.2f} TL**")
 
     toplam_sosyal = (gida + yakacak + ay_izin + ay_bayram + ay_prim +
                      giyim + ayakkabi + yilbasi +
@@ -1066,13 +1117,16 @@ with tab2:
                     st.session_state["s_ulke"], st.session_state["s_isv_sendika"],
                     st.session_state["s_sektor"], st.session_state["s_grup"],
                     ", ".join(st.session_state["s_subeler"]),
-                    st.session_state["s_uye"], st.session_state["s_calisan"],
+                    st.session_state["s_uye"],
+                    json.dumps(st.session_state.get("s_sube_uye", {}), ensure_ascii=False),
+                    st.session_state["s_calisan"],
                     tis_bas_str, tis_bit_str, zam_ozet,
+                    st.session_state["s_ucret_tipi_istatistik"],
                     st.session_state["s_u_tipi"],  sf(st.session_state["s_u_tutar"]),
                     st.session_state["s_ek1_mod"], sf(st.session_state["s_ek1_val"]),
-                    st.session_state["s_ek1_per"], st.session_state["s_ek1_tip"], sf(st.session_state["s_ek1_zam"]),
+                    st.session_state["s_ek1_per"], st.session_state["s_ek1_tip"], sf(st.session_state["s_ek1_zam"]), st.session_state["s_ek1_not"],
                     st.session_state["s_ek2_mod"], sf(st.session_state["s_ek2_val"]),
-                    st.session_state["s_ek2_per"], st.session_state["s_ek2_tip"], sf(st.session_state["s_ek2_zam"]),
+                    st.session_state["s_ek2_per"], st.session_state["s_ek2_tip"], sf(st.session_state["s_ek2_zam"]), st.session_state["s_ek2_not"],
                     # Gıda
                     st.session_state["s_gida_tip"], sf(st.session_state["s_gida_val"]),
                     st.session_state["s_gida_per"], st.session_state["s_gida_not"],
@@ -1131,7 +1185,7 @@ with tab2:
         rapor = {
             "Parametre": [
                 "Uzman","İşyeri","Sektör","Grup","Şubeler","TİS Başlangıç","TİS Bitiş",
-                "Üye Sayısı","Grev Durumu","Ana Ücret (Brüt)","Gıda","Yakacak",
+                "Üye Sayısı","Grev Durumu","Ana Maaş (Brüt)","Gıda","Yakacak",
                 "Giyim","Ayakkabı","Yılbaşı","İzin","Bayram","Prim","İkramiye",
                 "Aile & Çocuk","Vardiya","Gece Zammı","Özel Ek","Denge",
                 "Sosyal Paket","Giydirilmiş Ücret"
@@ -1181,7 +1235,7 @@ with tab3:
                     return float("nan")
             return series.apply(parse)
 
-        for col in ["Ana Ücret (Brüt)", "Sosyal Paket", "Toplam Maliyet"]:
+        for col in ["Ana Maaş (Brüt)", "Sosyal Paket", "Toplam Maliyet"]:
             if col in df3.columns:
                 df3[col] = to_float_col(df3[col])
         
@@ -1195,28 +1249,56 @@ with tab3:
         if "Üye Sayısı" in df3.columns:
             try: og2.metric("Toplam Üye", f"{int(pd.to_numeric(df3['Üye Sayısı'], errors='coerce').sum()):,}")
             except: og2.metric("Toplam Üye", "-")
-        if "Ana Ücret (Brüt)" in df3.columns:
-            og3.metric("Ort. Çıplak Ücret", f"{df3['Ana Ücret (Brüt)'].mean():,.0f} TL")
+        if "Ana Maaş (Brüt)" in df3.columns:
+            og3.metric("Ort. Çıplak Ücret", f"{df3['Ana Maaş (Brüt)'].mean():,.0f} TL")
         if "Toplam Maliyet" in df3.columns:
             og4.metric("Ort. Giydirilmiş Ücret", f"{df3['Toplam Maliyet'].mean():,.0f} TL")
 
         st.divider()
         st.subheader("🏙️ Şube Bazlı Karşılaştırma")
-        if "Şubeler" in df3.columns and "Ana Ücret (Brüt)" in df3.columns:
+        if "Şubeler" in df3.columns and "Ana Maaş (Brüt)" in df3.columns:
             sube_rows = []
-            for _, row in df3.iterrows():
-                for s in str(row.get("Şubeler","")).split(","):
+            for _, rowx in df3.iterrows():
+                sube_uye_data = {}
+                try:
+                    sube_uye_data = json.loads(str(rowx.get("Şube Üye Dağılımı","{}") or "{}"))
+                except: pass
+                for s in str(rowx.get("Şubeler","")).split(","):
                     s = s.strip()
-                    if s: sube_rows.append({"Şube":s,"Çıplak":row.get("Ana Ücret (Brüt)",0),"Giydirilmiş":row.get("Toplam Maliyet",0)})
+                    if s:
+                        uye = sube_uye_data.get(s, 0)
+                        try: uye = int(uye)
+                        except: uye = 0
+                        sube_rows.append({"Şube":s,"Çıplak":rowx.get("Ana Maaş (Brüt)",0),
+                                          "Giydirilmiş":rowx.get("Toplam Maliyet",0),"Üye":uye})
             if sube_rows:
                 sube_df   = pd.DataFrame(sube_rows)
                 sube_ozet = sube_df.groupby("Şube").agg(
-                    İşyeri_Sayısı=("Çıplak","count"), Ort_Çıplak=("Çıplak","mean"), Ort_Giydirilmiş=("Giydirilmiş","mean")
+                    İşyeri_Sayısı=("Çıplak","count"),
+                    Toplam_Üye=("Üye","sum"),
+                    Ort_Çıplak=("Çıplak","mean"),
+                    Ort_Giydirilmiş=("Giydirilmiş","mean")
                 ).reset_index().sort_values("Ort_Çıplak", ascending=False)
-                sube_ozet["Ort_Çıplak"]      = sube_ozet["Ort_Çıplak"].map("{:,.0f} TL".format)
-                sube_ozet["Ort_Giydirilmiş"] = sube_ozet["Ort_Giydirilmiş"].map("{:,.0f} TL".format)
-                sube_ozet.columns = ["Şube","İşyeri Sayısı","Ort. Çıplak Ücret","Ort. Giydirilmiş Ücret"]
-                st.dataframe(sube_ozet, use_container_width=True, hide_index=True)
+                sube_goster = sube_ozet.copy()
+                sube_goster["Ort_Çıplak"]      = sube_goster["Ort_Çıplak"].map("{:,.0f} TL".format)
+                sube_goster["Ort_Giydirilmiş"] = sube_goster["Ort_Giydirilmiş"].map("{:,.0f} TL".format)
+                sube_goster.columns = ["Şube","İşyeri Sayısı","Toplam Üye","Ort. Çıplak Ücret","Ort. Giydirilmiş Ücret"]
+                st.dataframe(sube_goster, use_container_width=True, hide_index=True)
+                # Grafik: Şube bazlı giydirilmiş ücret
+                try:
+                    import plotly.express as px
+                    fig_sube = px.bar(sube_ozet.sort_values("Ort_Giydirilmiş"),
+                                      x="Ort_Giydirilmiş", y="Şube", orientation="h",
+                                      title="Şube Bazlı Ort. Giydirilmiş Ücret (TL)",
+                                      color="Ort_Giydirilmiş", color_continuous_scale="Teal",
+                                      text=sube_ozet["Ort_Giydirilmiş"].map("{:,.0f} TL".format))
+                    fig_sube.update_traces(textposition="outside")
+                    fig_sube.update_layout(showlegend=False, coloraxis_showscale=False,
+                                           plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)",
+                                           font_color="white", height=max(300, len(sube_ozet)*40))
+                    st.plotly_chart(fig_sube, use_container_width=True)
+                except ImportError:
+                    st.info("Grafik için plotly kurulu değil.")
 
         st.divider()
         st.subheader("🏭 Sektör / Grup Bazlı")
@@ -1224,23 +1306,49 @@ with tab3:
         with scol1:
             st.markdown("**Sektör**")
             if "Sektör" in df3.columns:
+                df3["_uye_num"] = pd.to_numeric(df3["Üye Sayısı"], errors="coerce").fillna(0)
                 sek_ozet = df3.groupby("Sektör").agg(
-                    İşyeri=("Ana Ücret (Brüt)","count"), Ort_Çıplak=("Ana Ücret (Brüt)","mean"), Ort_Giydirilmiş=("Toplam Maliyet","mean")
+                    İşyeri=("Ana Maaş (Brüt)","count"),
+                    Toplam_Üye=("_uye_num","sum"),
+                    Ort_Çıplak=("Ana Maaş (Brüt)","mean"),
+                    Ort_Giydirilmiş=("Toplam Maliyet","mean")
                 ).reset_index().sort_values("Ort_Çıplak", ascending=False)
-                sek_ozet["Ort_Çıplak"]      = sek_ozet["Ort_Çıplak"].map("{:,.0f} TL".format)
-                sek_ozet["Ort_Giydirilmiş"] = sek_ozet["Ort_Giydirilmiş"].map("{:,.0f} TL".format)
-                sek_ozet.columns = ["Sektör","İşyeri Sayısı","Ort. Çıplak","Ort. Giydirilmiş"]
-                st.dataframe(sek_ozet, use_container_width=True, hide_index=True)
+                sek_goster = sek_ozet.copy()
+                sek_goster["Ort_Çıplak"]      = sek_goster["Ort_Çıplak"].map("{:,.0f} TL".format)
+                sek_goster["Ort_Giydirilmiş"] = sek_goster["Ort_Giydirilmiş"].map("{:,.0f} TL".format)
+                sek_goster["Toplam_Üye"]       = sek_goster["Toplam_Üye"].map("{:,.0f}".format)
+                sek_goster.columns = ["Sektör","İşyeri Sayısı","Toplam Üye","Ort. Çıplak","Ort. Giydirilmiş"]
+                st.dataframe(sek_goster, use_container_width=True, hide_index=True)
         with scol2:
             st.markdown("**Grup**")
             if "Grup" in df3.columns:
                 grup_ozet = df3.groupby("Grup").agg(
-                    İşyeri=("Ana Ücret (Brüt)","count"), Ort_Çıplak=("Ana Ücret (Brüt)","mean"), Ort_Giydirilmiş=("Toplam Maliyet","mean")
+                    İşyeri=("Ana Maaş (Brüt)","count"),
+                    Toplam_Üye=("_uye_num","sum"),
+                    Ort_Çıplak=("Ana Maaş (Brüt)","mean"),
+                    Ort_Giydirilmiş=("Toplam Maliyet","mean")
                 ).reset_index().sort_values("Ort_Çıplak", ascending=False)
-                grup_ozet["Ort_Çıplak"]      = grup_ozet["Ort_Çıplak"].map("{:,.0f} TL".format)
-                grup_ozet["Ort_Giydirilmiş"] = grup_ozet["Ort_Giydirilmiş"].map("{:,.0f} TL".format)
-                grup_ozet.columns = ["Grup","İşyeri Sayısı","Ort. Çıplak","Ort. Giydirilmiş"]
-                st.dataframe(grup_ozet, use_container_width=True, hide_index=True)
+                grup_goster = grup_ozet.copy()
+                grup_goster["Ort_Çıplak"]      = grup_goster["Ort_Çıplak"].map("{:,.0f} TL".format)
+                grup_goster["Ort_Giydirilmiş"] = grup_goster["Ort_Giydirilmiş"].map("{:,.0f} TL".format)
+                grup_goster["Toplam_Üye"]       = grup_goster["Toplam_Üye"].map("{:,.0f}".format)
+                grup_goster.columns = ["Grup","İşyeri Sayısı","Toplam Üye","Ort. Çıplak","Ort. Giydirilmiş"]
+                st.dataframe(grup_goster, use_container_width=True, hide_index=True)
+        
+        # Grafik: Grup bazlı karşılaştırma
+        try:
+            import plotly.graph_objects as go
+            if "Grup" in df3.columns and len(grup_ozet) > 0:
+                fig_grup = go.Figure()
+                fig_grup.add_trace(go.Bar(name="Ort. Çıplak Ücret", x=grup_ozet["Grup"],
+                                          y=grup_ozet["Ort_Çıplak"], marker_color="#42a5f5"))
+                fig_grup.add_trace(go.Bar(name="Ort. Giydirilmiş Ücret", x=grup_ozet["Grup"],
+                                          y=grup_ozet["Ort_Giydirilmiş"], marker_color="#66bb6a"))
+                fig_grup.update_layout(barmode="group", title="Grup Bazlı Ücret Karşılaştırması",
+                                       plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)",
+                                       font_color="white", legend=dict(orientation="h"))
+                st.plotly_chart(fig_grup, use_container_width=True)
+        except: pass
 
         st.divider()
         st.subheader("🔍 İşyeri Karşılaştırması")
@@ -1248,7 +1356,7 @@ with tab3:
             secilen = st.selectbox("İşyeri Seç", df3["İşyeri"].dropna().unique().tolist(), key="tab3_isyeri_sec")
             if secilen:
                 sec_row           = df3[df3["İşyeri"]==secilen].iloc[0]
-                genel_ort_maas    = df3["Ana Ücret (Brüt)"].mean()
+                genel_ort_maas    = df3["Ana Maaş (Brüt)"].mean()
                 genel_ort_maliyet = df3["Toplam Maliyet"].mean()
                 def safe_float(val):
                     try:
@@ -1256,7 +1364,7 @@ with tab3:
                         f = float(s)
                         return f if f == f else 0.0  # nan check
                     except: return 0.0
-                isyeri_maas    = safe_float(sec_row.get("Ana Ücret (Brüt)", 0))
+                isyeri_maas    = safe_float(sec_row.get("Ana Maaş (Brüt)", 0))
                 isyeri_maliyet = safe_float(sec_row.get("Toplam Maliyet", 0))
                 kk1, kk2 = st.columns(2)
                 with kk1: st.metric("Çıplak Ücret", f"{isyeri_maas:,.0f} TL",
@@ -1266,22 +1374,40 @@ with tab3:
                 if "Sektör" in df3.columns and sec_row.get("Sektör"):
                     sek = sec_row.get("Sektör"); sek_df = df3[df3["Sektör"]==sek]
                     sk1, sk2 = st.columns(2)
-                    with sk1: st.metric(f"{sek} Ort. Çıplak", f"{sek_df['Ana Ücret (Brüt)'].mean():,.0f} TL",
-                                         delta=f"{isyeri_maas-sek_df['Ana Ücret (Brüt)'].mean():+,.0f} TL")
+                    with sk1: st.metric(f"{sek} Ort. Çıplak", f"{sek_df['Ana Maaş (Brüt)'].mean():,.0f} TL",
+                                         delta=f"{isyeri_maas-sek_df['Ana Maaş (Brüt)'].mean():+,.0f} TL")
                     with sk2: st.metric(f"{sek} Ort. Giydirilmiş", f"{sek_df['Toplam Maliyet'].mean():,.0f} TL",
                                          delta=f"{isyeri_maliyet-sek_df['Toplam Maliyet'].mean():+,.0f} TL")
                 if "Grup" in df3.columns and sec_row.get("Grup"):
                     grp = sec_row.get("Grup"); grp_df = df3[df3["Grup"]==grp]
                     gk1, gk2 = st.columns(2)
-                    with gk1: st.metric(f"{grp} Grubu Ort. Çıplak", f"{grp_df['Ana Ücret (Brüt)'].mean():,.0f} TL",
-                                         delta=f"{isyeri_maas-grp_df['Ana Ücret (Brüt)'].mean():+,.0f} TL")
+                    with gk1: st.metric(f"{grp} Grubu Ort. Çıplak", f"{grp_df['Ana Maaş (Brüt)'].mean():,.0f} TL",
+                                         delta=f"{isyeri_maas-grp_df['Ana Maaş (Brüt)'].mean():+,.0f} TL")
                     with gk2: st.metric(f"{grp} Grubu Ort. Giydirilmiş", f"{grp_df['Toplam Maliyet'].mean():,.0f} TL",
                                          delta=f"{isyeri_maliyet-grp_df['Toplam Maliyet'].mean():+,.0f} TL")
+
+        # Genel dağılım grafiği
+        st.divider()
+        st.subheader("📈 Ücret Dağılımı")
+        try:
+            import plotly.express as px
+            if "Ana Maaş (Brüt)" in df3.columns and "Toplam Maliyet" in df3.columns:
+                df_plot = df3.copy()
+                df_plot["_uye_size"] = pd.to_numeric(df_plot.get("Üye Sayısı", 0), errors="coerce").fillna(10).clip(lower=5)
+                fig_dag = px.scatter(df_plot, x="Ana Maaş (Brüt)", y="Toplam Maliyet",
+                                     hover_name="İşyeri", color="Grup" if "Grup" in df_plot.columns else None,
+                                     size="_uye_size", size_max=40,
+                                     labels={"Ana Maaş (Brüt)":"Çıplak Ücret (TL)", "Toplam Maliyet":"Giydirilmiş Ücret (TL)"},
+                                     title="Çıplak ↔ Giydirilmiş Ücret Dağılımı (baloncuk = üye sayısı)")
+                fig_dag.update_layout(plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)",
+                                      font_color="white")
+                st.plotly_chart(fig_dag, use_container_width=True)
+        except: pass
 
         st.divider()
         st.subheader("📋 Tüm Kayıtlar")
         goster_cols = [c for c in ["İşyeri","Sektör","Grup","Şubeler","Üye Sayısı",
-                                    "TİS Başlangıç","TİS Bitiş","Ana Ücret (Brüt)","Sosyal Paket","Toplam Maliyet"]
+                                    "TİS Başlangıç","TİS Bitiş","Ana Maaş (Brüt)","Sosyal Paket","Toplam Maliyet"]
                        if c in df3.columns]
         df3_goster = df3[goster_cols].sort_values("Toplam Maliyet", ascending=False).copy()
         df3_goster = df3_goster.rename(columns={"Toplam Maliyet": "Giydirilmiş Ücret", "Ana Maaş (Brüt)": "Çıplak Ücret"})
