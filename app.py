@@ -552,11 +552,19 @@ with tab1:
         if secili_subeler:
             # Şube bazlı üye sayısı
             st.caption("📌 Şube bazlı üye sayısı")
-            sube_uye = st.session_state.get("s_sube_uye", {})
+            _raw_uye = st.session_state.get("s_sube_uye", {})
+            if isinstance(_raw_uye, str):
+                try: sube_uye = json.loads(_raw_uye)
+                except: sube_uye = {}
+            elif isinstance(_raw_uye, dict):
+                sube_uye = _raw_uye
+            else:
+                sube_uye = {}
             toplam_uye = 0
             for sube in secili_subeler:
                 key = f"sube_uye_{sube}"
-                mevcut = sube_uye.get(sube, 0)
+                try: mevcut = int(sube_uye.get(sube, 0))
+                except: mevcut = 0
                 if key not in st.session_state:
                     st.session_state[key] = mevcut
                 val = st.number_input(f"{sube}", min_value=0, key=key)
