@@ -498,7 +498,7 @@ with st.sidebar:
 # ============================================================
 # SEKMELER
 # ============================================================
-tab1, tab2, tab3 = st.tabs(["🏢 İşyeri Bilgileri", "💰 Ücret ve Sosyal Ödemeler", "📊 Karşılaştırma ve İstatistik"])
+tab1, tab2, tab3, tab4 = st.tabs(["🏢 İşyeri Bilgileri", "💰 Ücret ve Sosyal Ödemeler", "📊 Karşılaştırma ve İstatistik", "📅 Zam Takvimi"])
 
 # ============================================================
 # TAB 1
@@ -1440,3 +1440,171 @@ with tab3:
         df3_goster = df3[goster_cols].sort_values("Toplam Maliyet", ascending=False).copy()
         df3_goster = df3_goster.rename(columns={"Toplam Maliyet": "Giydirilmiş Ücret", "Ana Maaş (Brüt)": "Çıplak Ücret"})
         st.dataframe(df3_goster, use_container_width=True, hide_index=True)
+
+# ============================================================
+# TAB 4 — ZAM TAKVİMİ
+# ============================================================
+with tab4:
+    st.header("📅 Zam Takvimi")
+    st.caption("Kayıtlı işyerlerinin zam dönemlerini ay ve yıl bazlı görüntüleyin.")
+
+    df_zam = verileri_getir()
+
+    if df_zam.empty:
+        st.info("Henüz kayıtlı veri yok.")
+    else:
+        # ── Filtre: Yıl ve Ay seçimi ──────────────────────────
+        bugun = datetime.now().date()
+        filtre_col1, filtre_col2, filtre_col3 = st.columns([1, 1, 2])
+        with filtre_col1:
+            secili_yil = st.selectbox("Yıl", [2024, 2025, 2026, 2027, 2028],
+                                       index=[2024,2025,2026,2027,2028].index(bugun.year)
+                                       if bugun.year in [2024,2025,2026,2027,2028] else 2,
+                                       key="zam_takvim_yil")
+        with filtre_col2:
+            secili_ay_adi = st.selectbox("Ay", ["Tümü"] + AYLAR, key="zam_takvim_ay")
+        with filtre_col3:
+            sadece_yaklasan = st.checkbox(
+                "Sadece yaklaşan / henüz gerçekleşmemiş zamları göster",
+                value=True, key="zam_takvim_yaklasan"
+            )
+
+        secili_ay_no = AY_MAP.get(secili_ay_adi) if secili_ay_adi != "Tümü" else None
+
+        # ── Zam JSON'ları parse et ─────────────────────────────
+        sonuclar = []
+        for _, row in df_zam.iterrows():
+            isyeri   = row.get("İşyeri", "")
+            sektor   = row.get("Sektör", "")
+            grup     = row.get("Grup", "")
+            subeler  = row.get("Şubeler", "")
+            zam_json = row.get("Zam JSON", "")
+            if not isyeri or not zam_json:
+                continue
+            try:
+                zamlar = json.loads(str(zam_json))
+            except:
+                continue
+            if not isinstance(zamlar, list):
+                continue
+            for d in zamlar:
+                try:
+                    yil = int(d.get("yil", 0))
+                    ay_adi = d.get("ay", "")
+                    ay_no  = AY_MAP.get(ay_adi, 0)
+                    if not yil or not ay_no:
+                        continue
+                    # Yıl filtresi
+                    if yil != secili_yil:
+                        continue
+                    # Ay filtresi
+                    if secili_ay_no and ay_no != secili_ay_no:
+                        continue
+                    # Yaklaşan filtresi
+                    zam_tarihi = datetime(yil, ay_no, 1).date()
+                    if sadece_yaklasan and zam_tarihi < bugun:
+                        continue
+                    # Kalem özeti
+                    kalemler = d.get("kalemler", [])
+                    kalem_str = ", ".join([
+                        f"%{k['deger']:.1f}" if k["tip"] == "Yüzde (%)" else f"{k['deger']:.0f} TL"
+                        for k in kalemler
+                    ])
+                    uygulaniyor = "✅ Uygulanıyor" if d.get("uygula") else "📋 Kayıtlı"
+                    hesap_tipi  = d.get("hesap_tipi", "")
+                    not_str     = d.get("not", "")
+                    kalan_gun   = max((zam_tarihi - bugun).days, 0)
+                    sonuclar.append({
+                        "İşyeri":       isyeri,
+                        "Sektör":       sektor,
+                        "Grup":         grup,
+                        "Şubeler":      subeler,
+                        "Zam Tarihi":   f"{ay_adi} {yil}",
+                        "Tarih Sort":   zam_tarihi,
+                        "Kalan Gün":    kalan_gun,
+                        "Zam Kalemleri":kalem_str,
+                        "Hesap Tipi":   hesap_tipi,
+                        "Not":          not_str,
+                        "Durum":        uygulaniyor,
+                    })
+                except:
+                    continue
+
+        if not sonuclar:
+            ay_label = secili_ay_adi if secili_ay_adi != "Tümü" else "seçilen dönemde"
+            st.warning(f"🔍 {secili_yil} {ay_label} için kayıtlı zam bulunamadı.")
+        else:
+            df_sonuc = pd.DataFrame(sonuclar).sort_values("Tarih Sort")
+
+            # ── Özet metrikler ─────────────────────────────────
+            m1, m2, m3 = st.columns(3)
+            m1.metric("Toplam İşyeri", df_sonuc["İşyeri"].nunique())
+            m2.metric("Toplam Zam Dönemi", len(df_sonuc))
+            yaklasan_30 = df_sonuc[df_sonuc["Kalan Gün"] <= 30]
+            m3.metric("30 Gün İçinde", len(yaklasan_30["İşyeri"].unique()),
+                      delta=f"{len(yaklasan_30)} dönem" if len(yaklasan_30) > 0 else None,
+                      delta_color="inverse")
+
+            st.divider()
+
+            # ── Ay bazlı gruplu görünüm ─────────────────────────
+            aylar_var = df_sonuc["Zam Tarihi"].unique().tolist()
+            for ay_etiket in sorted(set(df_sonuc["Zam Tarihi"]), key=lambda x: df_sonuc[df_sonuc["Zam Tarihi"]==x]["Tarih Sort"].iloc[0]):
+                ay_df = df_sonuc[df_sonuc["Zam Tarihi"] == ay_etiket].copy()
+                kalan = ay_df["Kalan Gün"].iloc[0]
+
+                if kalan == 0:
+                    badge = "🔴 Bu ay"
+                elif kalan <= 30:
+                    badge = f"🟠 {kalan} gün kaldı"
+                elif kalan <= 90:
+                    badge = f"🟡 {kalan} gün kaldı"
+                else:
+                    badge = f"🟢 {kalan} gün kaldı"
+
+                with st.expander(f"**{ay_etiket}** — {len(ay_df)} işyeri  {badge}", expanded=(kalan <= 90)):
+                    # Tablo
+                    goster = ay_df[["İşyeri","Sektör","Grup","Şubeler","Zam Kalemleri","Hesap Tipi","Not","Durum"]].copy()
+                    st.dataframe(goster, use_container_width=True, hide_index=True)
+
+            st.divider()
+
+            # ── Zaman çizelgesi grafiği ─────────────────────────
+            st.subheader("📊 Zam Takvimi Grafiği")
+            try:
+                import plotly.express as px
+                ay_sayisi = df_sonuc.groupby("Zam Tarihi").agg(
+                    İşyeri_Sayısı=("İşyeri","nunique"),
+                    Tarih=("Tarih Sort","first")
+                ).reset_index().sort_values("Tarih")
+
+                fig_takvim = px.bar(
+                    ay_sayisi, x="Zam Tarihi", y="İşyeri_Sayısı",
+                    title=f"{secili_yil} Yılı — Aya Göre Zam Alan İşyeri Sayısı",
+                    labels={"İşyeri_Sayısı": "İşyeri Sayısı", "Zam Tarihi": "Dönem"},
+                    color="İşyeri_Sayısı", color_continuous_scale="Blues",
+                    text="İşyeri_Sayısı"
+                )
+                fig_takvim.update_traces(textposition="outside")
+                fig_takvim.update_layout(
+                    plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)",
+                    font_color="white", coloraxis_showscale=False,
+                    xaxis_title="", yaxis_title="İşyeri Sayısı"
+                )
+                st.plotly_chart(fig_takvim, use_container_width=True)
+
+                # Grup dağılımı
+                if len(df_sonuc["Grup"].dropna().unique()) > 1:
+                    fig_grup = px.pie(
+                        df_sonuc.drop_duplicates("İşyeri"),
+                        names="Grup",
+                        title=f"{secili_yil} Zam Alan İşyerleri — Grup Dağılımı",
+                        hole=0.4
+                    )
+                    fig_grup.update_layout(
+                        plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)",
+                        font_color="white"
+                    )
+                    st.plotly_chart(fig_grup, use_container_width=True)
+            except ImportError:
+                st.info("Grafik için plotly gerekli. requirements.txt dosyasına plotly ekleyin.")
