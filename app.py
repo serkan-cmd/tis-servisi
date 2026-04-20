@@ -94,7 +94,7 @@ DEFAULTS = {
     # Gıda
     "s_gida_tip": "Net", "s_gida_val": 0.0, "s_gida_per": "Yıllık", "s_gida_not": "",
     # Yakacak
-    "s_yakacak_mod": "Maktu", "s_yakacak_tip": "Net", "s_yakacak_kdv": "KDV Dahil Değil",
+    "s_yakacak_mod": "Maktu", "s_yakacak_tip": "Net", "s_yakacak_kdv": "KDV Dahil",
     "s_yakacak_val": 0.0, "s_yakacak_m3": 0.0, "s_yakacak_birim": 0.0,
     "s_yakacak_per": "Yıllık", "s_yakacak_not": "",
     # Giyim
@@ -265,7 +265,7 @@ def yukle_kayit(r):
     st.session_state["s_gida_not"] = rvs("Gıda Not")
     # Yakacak
     st.session_state["s_yakacak_mod"]   = rs("Yakacak Mod", ["Maktu", "Metreküp"], "Maktu")
-    st.session_state["s_yakacak_kdv"]   = rs("Yakacak KDV", ["KDV Dahil Değil", "KDV Dahil"], "KDV Dahil Değil")
+    st.session_state["s_yakacak_kdv"]   = rs("Yakacak KDV", ["KDV Dahil", "KDV Dahil Değil"], "KDV Dahil")
     st.session_state["s_yakacak_val"]   = rf("Yakacak Tutar")
     st.session_state["s_yakacak_m3"]    = rf("Yakacak M3")
     st.session_state["s_yakacak_birim"] = rf("Yakacak Birim")
@@ -418,7 +418,7 @@ def yakacak_hesapla():
         birim = st.session_state["s_yakacak_birim"]
         kdv   = st.session_state["s_yakacak_kdv"]
         tutar = m3 * birim
-        if kdv == "KDV Dahil Değil":
+        if kdv == "KDV Dahil":
             tutar *= 1.20
         val = yardim_brutlestir(tutar, tip, secilen_oran)
     return ayliklandir(val, per)
@@ -858,7 +858,7 @@ with tab2:
         else:
             # Metreküp modunda: KDV sonrası tutar net kabul edilir, Net/Brüt seçeneği sunulur
             yk_r1, yk_r2 = st.columns([1, 2])
-            with yk_r1: st.selectbox("KDV Durumu", ["KDV Dahil Değil","KDV Dahil"], key="s_yakacak_kdv")
+            with yk_r1: st.selectbox("KDV Durumu", ["KDV Dahil","KDV Dahil Değil"], key="s_yakacak_kdv")
             with yk_r2: st.radio("", ["Net","Brüt"], horizontal=True, key="s_yakacak_tip",
                                   help="KDV sonrası tutarın Net mi Brüt mü olduğunu seçin")
             ym1, ym2, ym3, ym4 = st.columns([2, 2, 1, 2])
@@ -868,7 +868,7 @@ with tab2:
                                        key="s_yakacak_zam", help="Yakacağa özel artış")
             with ym4: st.text_input("Not", key="s_yakacak_not", placeholder="Açıklama...")
             net_tutar = st.session_state["s_yakacak_m3"] * st.session_state["s_yakacak_birim"]
-            kdv_tutar = net_tutar * 1.20 if st.session_state["s_yakacak_kdv"] == "KDV Dahil Değil" else net_tutar
+            kdv_tutar = net_tutar * 1.20 if st.session_state["s_yakacak_kdv"] == "KDV Dahil" else net_tutar
             st.info(f"Net: {net_tutar:,.2f} TL  →  KDV'li: {kdv_tutar:,.2f} TL")
             st.session_state["s_yakacak_val"] = kdv_tutar
         yak_baz = yakacak_hesapla()
